@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stowage Plan Pro - Tracking Manual</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #e4e7eb;
+            --grid-line: #ccc;
+            --cell-size: 26px; 
+            --cell-border: #222;
+            --primary: #1a2a3a;
+            
+            /* Cores Dinâmicas dos Portos */
+            --port-lb: #e60000; 
+            --port-lh: #0073e6; 
+            --port-ba: #8cd962;
+            --port-na: #ffff4d; 
+            --port-ve: #ffa600; 
+            --port-tr: #800080;
+            --port-empty: #ffffff; 
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; user-select: none; }
+
+        body { background-color: var(--bg-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+        /* ================= MODAL INICIAL E LOADING ================= */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7); z-index: 2000;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: white; padding: 35px; border-radius: 8px; max-width: 650px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); border-top: 6px solid var(--primary);
+        }
+        .modal-content h2 { color: var(--primary); margin-bottom: 20px; font-size: 24px; }
+        .modal-content ul { line-height: 1.7; margin-left: 20px; font-size: 15px; color: #333; margin-bottom: 25px;}
+        .modal-content li { margin-bottom: 10px; }
+        .btn-start {
+            background: #5cb85c; color: white; border: none; padding: 14px 20px; 
+            font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; transition: 0.2s;
+        }
+        .btn-start:hover { background: #4cae4c; transform: scale(1.02); }
+
+        #pdfLoadingOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95); z-index: 9999;
+            flex-direction: column; justify-content: center; align-items: center;
+        }
+        #pdfLoadingOverlay h2 { color: var(--primary); font-size: 24px; margin-bottom: 10px; }
+        #pdfLoadingOverlay p { color: #555; font-size: 16px; }
+        .spinner {
+            border: 6px solid #f3f3f3; border-top: 6px solid var(--primary);
+            border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        header {
+            background-color: var(--primary); color: white; padding: 12px 20px;
+            display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3); z-index: 100;
+        }
+
+        .header-title { display: flex; align-items: center; gap: 15px; }
+        .header-title h2 { font-size: 20px; margin: 0; }
+        
+        .header-controls { display: flex; gap: 10px; align-items: center; }
+        .tabs { display: flex; gap: 10px; border-right: 2px solid rgba(255,255,255,0.2); padding-right: 15px; margin-right: 5px;}
+        
+        .tab-btn {
+            background: #2a3a4a; color: white; border: none; padding: 8px 16px; 
+            border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s;
+        }
+        .tab-btn.active { background: #5cb85c; box-shadow: 0 0 8px rgba(92,184,92,0.6); }
+
+        .btn-edit, .btn-export {
+            background: #d9534f; color: white; border: none; padding: 8px 16px; 
+            border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s;
+        }
+        .btn-edit.active { background: #5cb85c; box-shadow: 0 0 8px rgba(92,184,92,0.6); }
+        .btn-export { background: #3498db; }
+        .btn-export:hover { background: #2980b9; }
+
+        main { display: flex; flex: 1; overflow: hidden; }
+
+        /* ================= TELA 1: LISTA DE CARGA (INPUT) ================= */
+        #cargoView { display: flex; width: 100%; height: 100%; background: #fff; flex-direction: column; user-select: auto; overflow: hidden;}
+        .cargo-header { padding: 20px; background: #fafafa; border-bottom: 1px solid #ddd; position: relative; flex-shrink: 0;}
+        
+        .color-picker-group { display: flex; gap: 15px; margin-top: 15px; align-items: center; background: #eee; padding: 10px; border-radius: 6px;}
+        .color-picker-group h4 { margin: 0; font-size: 13px; color: #333; }
+        .color-picker-label { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: bold; cursor: pointer; padding: 4px 8px; background: white; border: 1px solid #ccc; border-radius: 4px;}
+        .color-picker-label input { width: 20px; height: 20px; padding: 0; border: none; cursor: pointer; background: none;}
+
+        .cargo-table-container { flex: 1; padding: 20px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 13px; }
+        th { background-color: #f4f4f4; position: sticky; top: 0; z-index: 10;}
+        td input[type="number"], td select { width: 100%; padding: 6px; border: 1px solid #ccc; font-size: 13px; border-radius: 4px;}
+        .attr-checks { display: flex; flex-wrap: wrap; gap: 8px;}
+        .attr-checks label { display: flex; align-items: center; font-size: 11px; cursor: pointer; background: #f9f9f9; padding: 4px 6px; border: 1px solid #eee; border-radius: 4px;}
+        .attr-checks label:hover { background: #eef5ff; border-color: var(--primary); }
+        .attr-checks input { width: auto; margin-right: 4px; }
+        .btn-add { background: #5cb85c; color: white; border: none; padding: 8px 16px; cursor: pointer; border-radius: 4px; font-weight: bold; margin-right: 10px; }
+        .btn-clear-row { background: #f8f9fa; border: 1px dashed #d9534f; color: #d9534f; cursor: pointer; padding: 6px 10px; font-weight: bold; border-radius: 4px;}
+        .btn-clear-row:hover { background: #fee; }
+        .btn-reset-data { background: #d9534f; color: white; border: none; padding: 8px 16px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .btn-reset-data:hover { background: #c9302c; }
+
+        /* ================= TELA 2: PLANO MANUAL & VISÃO ================= */
+        #manualView { display: none; width: 100%; height: 100%; }
+        
+        .sidebar {
+            width: 360px; background-color: #fff; border-right: 2px solid #ccc;
+            display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0;
+        }
+
+        .tool-section { padding: 15px; border-bottom: 1px solid #eee; background: #fafafa; }
+        .tool-section h3 { font-size: 13px; margin-bottom: 10px; color: #444; text-transform: uppercase; }
+
+        .bay-selector {
+            width: 100%; padding: 10px; font-size: 16px; font-weight: bold;
+            background: #eef5ff; border: 2px solid var(--primary); border-radius: 6px; cursor: pointer;
+        }
+
+        .action-btns { display: flex; gap: 8px; margin-top: 10px; }
+        .btn-filter { flex: 1; background: #34495e; color: white; border: none; padding: 8px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px;}
+        .btn-filter.active { background: #f39c12; }
+
+        /* PAINEL DE EXPANSÃO DA GRADE (MODO EDIÇÃO) */
+        .grid-edit-panel { background: #ffebee; border: 1px solid #ffcaca; border-radius: 6px; padding: 12px; margin-bottom: 15px; display: none; }
+        .grid-edit-panel h4 { margin: 0 0 10px 0; color: #c9302c; font-size: 13px; text-align: center; }
+        .grid-edit-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .grid-edit-row span { font-size: 11px; font-weight: bold; color: #333; }
+        .grid-edit-btns button { background: white; border: 1px solid #ccc; border-radius: 4px; padding: 2px 10px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        .grid-edit-btns button:hover { background: #eee; }
+
+        .inventory-container { flex: 1; overflow-y: auto; background: #fff; }
+        .inventory-header { padding: 10px 15px; background: #1a2a3a; color: white; font-size: 12px; font-weight: bold; position: sticky; top: 0; z-index: 10; display:flex; justify-content: space-between; align-items:center;}
+        .btn-deselect { background: transparent; border: 1px solid white; color: white; padding: 3px 8px; border-radius: 3px; cursor:pointer; font-size: 10px;}
+        .btn-deselect:hover { background: rgba(255,255,255,0.2); }
+
+        .palette-item {
+            display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid #eee;
+            cursor: pointer; transition: 0.1s; background: white;
+        }
+        .palette-item:hover { background: #f4f7f6; }
+        .palette-item.active { background: #eef5ff; border-left: 5px solid var(--primary); padding-left: 10px; }
+        .palette-item.complete { opacity: 0.4; cursor: not-allowed; background: #f9f9f9;}
+        
+        .palette-cell {
+            width: 32px; height: 32px; border: 1px solid #111; position: relative;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 15px;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2); background-color: var(--port-empty);
+        }
+        .palette-port { font-size: 11px; font-weight: bold; position: relative; z-index: 20; color: #000; text-shadow: 0 0 3px rgba(255,255,255,0.9); }
+        .palette-info { flex: 1; }
+        .palette-title { font-size: 12px; font-weight: bold; color: #222; }
+        .palette-mods { font-size: 10px; color: #666; margin-top: 2px;}
+        
+        .palette-counter {
+            font-size: 13px; font-weight: bold; background: var(--primary); color: white;
+            padding: 4px 10px; border-radius: 12px; min-width: 45px; text-align: center; letter-spacing: 0.5px;
+        }
+        .palette-counter.zero { background: #888; }
+
+        .canvas-area {
+            flex: 1; padding: 30px; overflow: auto; display: flex; flex-direction: column; align-items: center; background-color: var(--bg-color);
+        }
+        
+        /* GRIDS & BAYS */
+        .bay-pair-wrapper { display: flex; flex-direction: column; align-items: center; margin-bottom: 40px;}
+        .pair-container { display: flex; gap: 40px; justify-content: center; flex-wrap: nowrap; align-items: flex-start;}
+        
+        .bay-container-wrapper { display: flex; flex-direction: column; align-items: center; }
+        .bay-container-wrapper h3 { font-size: 24px; color: #111; margin: 0 0 10px 0; letter-spacing: 1px;}
+        
+        .bay-container {
+            display: flex; flex-direction: column; align-items: center; background: white;
+            padding: 15px 25px; border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.15); border: 1px solid #ddd;
+        }
+
+        .axis-title { text-align: center; font-size: 13px; font-weight: bold; letter-spacing: 2px; color: #444; margin-bottom: 2px;}
+        .axis-title-tier { writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; font-size: 13px; font-weight: bold; letter-spacing: 2px; color: #444; margin-right: 5px;}
+        .bay-grid-flex { display: flex; align-items: center; }
+
+        .axis-row { display: flex; margin-bottom: 0px; }
+        .axis-col-labels { display: flex; margin-left: 24px; margin-bottom: 4px; margin-top: 4px;}
+        .axis-label { width: var(--cell-size); text-align: center; font-size: 11px; font-weight: bold; color: #666; }
+        .row-label { width: 24px; display: flex; align-items: center; justify-content: flex-end; margin-right: 4px; font-size: 11px; font-weight: bold; color: #666; }
+        .deck-separator { width: 100%; height: 6px; background-color: #111; margin: 6px 0; border-radius: 2px;}
+        
+        .grid-row { display: flex; }
+        .cell {
+            width: var(--cell-size); height: var(--cell-size); border: 1px solid var(--cell-border);
+            background-color: var(--port-empty); position: relative; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; transition: 0.1s;
+        }
+        .cell:hover { opacity: 0.8; border: 2px solid #000; z-index: 50;}
+        .cell.hidden { visibility: hidden; border: none; pointer-events: none; }
+        
+        .edit-mode-active .cell { cursor: cell; pointer-events: auto !important;}
+        .edit-mode-active .cell.hidden { visibility: visible; background-color: #eee; border: 1px dashed #aaa; opacity: 0.6; }
+
+        .port-text { font-size: 11px; font-weight: bold; color: #000; position: relative; z-index: 20; pointer-events: none; text-shadow: 0px 0px 3px rgba(255,255,255,0.9); }
+
+        /* SÍMBOLOS CSS */
+        .layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 5; }
+        .layer.base-opentop { border-top: 4px solid #111; }
+        .layer.base-flatrack::before { content: ''; position: absolute; bottom: 0; right: 0; border-width: 0 0 10px 10px; border-style: solid; border-color: transparent transparent #111 transparent; }
+        .layer.base-platform { border-bottom: 4px solid #111; }
+        .layer.base-oh40::before { content: 'X'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 16px; color: #111; font-weight: normal; font-family: sans-serif; z-index: 6;}
+        .layer.base-oh45::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); border-width: 8px 8px 0 8px; border-style: solid; border-color: #111 transparent transparent transparent; }
+        .layer.base-imo::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(45deg); width: 12px; height: 12px; border: 1.5px solid #111; }
+        .layer.base-livestock::after { content: 'LS'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 9px; font-weight: bold; color: #111; }
+        .layer.base-tank::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #111; }
+        .layer.base-tank::after { content: 'T'; position: absolute; top: 2px; right: 3px; font-size: 8px; font-weight: bold; color: #111; }
+        
+        /* O "X" DE 40 PÉS: Fundo branco e o X centralizado de forma segura usando método de texto para compatibilidade no PDF */
+        .layer.base-blocked40 { background-color: #ffffff !important; border: 1px solid #111; }
+        .layer.base-blocked40::before { 
+            content: 'X'; 
+            position: absolute; 
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); 
+            font-size: 26px; 
+            font-weight: normal; 
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #666; 
+            z-index: 30; 
+        }
+
+        .layer.mod-hc::before { content: ''; position: absolute; top: 0; left: 0; width: 8px; height: 8px; border-right: 1.5px solid #111; border-bottom: 1.5px solid #111; border-radius: 0 0 100% 0; }
+        .layer.mod-ow::before { content: ''; position: absolute; top: 12%; bottom: 12%; left: 1px; right: 1px; border-left: 1.5px solid #111; border-right: 1.5px solid #111; border-radius: 8px; }
+        .layer.mod-oh::after { content: ''; position: absolute; top: 1px; left: 12%; right: 12%; height: 6px; border-top: 1.5px solid #111; border-radius: 50% 50% 0 0; }
+        .layer.mod-empty::after { content: 'E'; position: absolute; top: 2px; right: 3px; font-size: 8px; font-weight: bold; color: #111; }
+        .layer.mod-reefer::after { content: 'R'; position: absolute; top: 2px; right: 3px; font-size: 8px; font-weight: bold; color: #111; }
+        .layer.mod-ol::after { content: 'OL'; position: absolute; bottom: 1px; left: 50%; transform: translateX(-50%); font-size: 8px; font-weight: bold; color: #111; }
+        
+        .layer.mod-imo5::after { content: '5'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 9px; font-weight: bold; color: #111; }
+        .layer.mod-imo8::after { content: '8'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 9px; font-weight: bold; color: #111; }
+
+        .filter-imo .cell:not(:has(.base-imo)):not(:has(.mod-imo5)):not(:has(.mod-imo8)) { opacity: 0.15; }
+        .filter-reefer .cell:not(:has(.mod-reefer)) { opacity: 0.15; }
+
+        /* ================= ÁREA DE EXPORTAÇÃO PDF ================= */
+        #printArea {
+            display: none; 
+            width: 100%;
+            background: #ffffff;
+            margin: 0 auto;
+        }
+
+        .pdf-page {
+            width: 290mm; /* Quase uma folha A4 completa na largura */
+            height: 195mm; /* Protege a margem inferior para não quebrar a página */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: white;
+            box-sizing: border-box;
+            page-break-after: always;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        /* Ajustes específicos para a folha renderizada no PDF */
+        .pdf-page .bay-pair-wrapper { width: 100%; transform: scale(1.05); transform-origin: top center; }
+        .pdf-page .cell { border: 1px solid #111 !important; }
+        .pdf-page .deck-separator { background-color: #000 !important; }
+        .pdf-page .bay-container { border: 2px solid #aaa !important; box-shadow: none !important;}
+
+    </style>
+</head>
+<body>
+
+    <div id="pdfLoadingOverlay">
+        <div class="spinner"></div>
+        <h2>Processando Dados...</h2>
+        <p>Isso pode levar alguns segundos. Não feche a página.</p>
+    </div>
+
+    <div id="welcomeModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>🚢 Stowage Plan Pro - Bem-vindo</h2>
+            <ul>
+                <li><strong style="color: #d9534f;">MUDE AS CORES (OBRIGATÓRIO):</strong> Vá na aba "1. Lista de Carga", logo abaixo, e altere a paleta de cores dos portos clicando nas caixas de cor.</li>
+                <li><strong>Salvamento Automático:</strong> Os seus dados são salvos localmente. Tudo o que você alocar fica gravado mesmo se fechar o navegador.</li>
+                <li><strong>Edição de Grade:</strong> Clicando em "Editar Casco" você pode expandir as colunas (Rolls) e linhas (Tiers) do navio inteiro no painel lateral.</li>
+                <li><strong>Preenchimento Rápido (Lotes):</strong> Clique na primeira célula, segure <strong>SHIFT</strong> e clique na última para preencher linhas inteiras.</li>
+                <li><strong>Exportar PDF:</strong> O sistema isola apenas os desenhos e gera um arquivo A4 Paisagem (Landscape) real sem que o navegador desconfigure tudo.</li>
+            </ul>
+            <button id="closeModalBtn" class="btn-start">Entendido, vamos começar!</button>
+        </div>
+    </div>
+
+    <header>
+        <div class="header-title">
+            <h2>Stowage Plan Pro 🚢</h2>
+        </div>
+        <div class="header-controls">
+            <div class="tabs">
+                <button class="tab-btn active" id="tabCargo">1. Lista de Carga</button>
+                <button class="tab-btn" id="tabManual">2. Plano Manual</button>
+            </div>
+            <button id="toggleEditBtn" class="btn-edit" title="Desenhe o contorno do casco e expanda o grid" style="display:none;">✎ Editar Casco</button>
+            <button id="exportPdfBtn" class="btn-export" title="Gerar arquivo PDF final">📄 Exportar PDF</button>
+        </div>
+    </header>
+
+    <main>
+        <section id="cargoView">
+            <div class="cargo-header">
+                <h3 style="margin-bottom: 5px;">Tabela de Contêineres (Padrão TTM 2026 Carregado)</h3>
+                <p style="font-size: 13px; color: #555;">A lista padrão já foi carregada. Altere as cores dos portos conforme a instrução.</p>
+                
+                <div class="color-picker-group">
+                    <h4>Cores dos Portos:</h4>
+                    <label class="color-picker-label">LB <input type="color" id="color-lb" value="#e60000"></label>
+                    <label class="color-picker-label">LH <input type="color" id="color-lh" value="#0073e6"></label>
+                    <label class="color-picker-label">BA <input type="color" id="color-ba" value="#8cd962"></label>
+                    <label class="color-picker-label">NA <input type="color" id="color-na" value="#ffff4d"></label>
+                    <label class="color-picker-label">VE <input type="color" id="color-ve" value="#ffa600"></label>
+                    <label class="color-picker-label">TR <input type="color" id="color-tr" value="#800080"></label>
+                </div>
+            </div>
+            
+            <div class="cargo-table-container">
+                <table id="cargoTable">
+                    <thead>
+                        <tr>
+                            <th>Porto (POD)</th>
+                            <th style="width: 80px;">Qtd</th>
+                            <th>Tamanho</th>
+                            <th>Tipo Base</th>
+                            <th>Modificadores (Acumulativos)</th>
+                            <th style="width: 140px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cargoTbody">
+                        </tbody>
+                </table>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <button class="btn-add" id="addCargoRowBtn">+ Adicionar Linha</button>
+                    <button class="btn-reset-data" id="btnResetData" title="Apaga todas as cargas salvas no navegador">⚠️ Resetar Dados LocalStorage</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="manualView">
+            <aside class="sidebar">
+                
+                <div id="gridEditPanel" class="grid-edit-panel">
+                    <h4>⚙️ Estrutura Global do Grid</h4>
+                    <div class="grid-edit-row">
+                        <span>Colunas (Rolls)</span>
+                        <div class="grid-edit-btns">
+                            <button id="btnRemRoll">-</button>
+                            <button id="btnAddRoll">+</button>
+                        </div>
+                    </div>
+                    <div class="grid-edit-row">
+                        <span>Convés (Tiers Top)</span>
+                        <div class="grid-edit-btns">
+                            <button id="btnRemTierAbove">-</button>
+                            <button id="btnAddTierAbove">+</button>
+                        </div>
+                    </div>
+                    <div class="grid-edit-row">
+                        <span>Porão (Tiers Bot)</span>
+                        <div class="grid-edit-btns">
+                            <button id="btnRemTierBelow">-</button>
+                            <button id="btnAddTierBelow">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tool-section">
+                    <h3>⚓ Selecionar Par de Bays</h3>
+                    <select class="bay-selector" id="baySelect"></select>
+                    
+                    <div class="action-btns">
+                        <button class="btn-filter" id="btnFilterIMO">🔍 Ver IMO</button>
+                        <button class="btn-filter" id="btnFilterReefer">❄️ Ver Reefer</button>
+                    </div>
+                </div>
+
+                <div class="inventory-container">
+                    <div class="inventory-header">
+                        <span>LISTA DE CARGA (POD)</span>
+                        <button class="btn-deselect" id="btnDeselect">Desmarcar</button>
+                    </div>
+                    <div id="inventoryList">
+                        </div>
+                </div>
+            </aside>
+
+            <section class="canvas-area" id="canvasArea">
+                <div id="pairContainer">
+                    </div>
+            </section>
+        </section>
+    </main>
+
+    <div id="printArea"></div>
+
+    <script>
+        // --- 1. DEFINIÇÕES DA ESTRUTURA E TOPOLOGIA ---
+        let COLS = ['12','10','08','06','04','02','00','01','03','05','07','09','11'];
+        let ROWS_ABOVE = ['92','90','88','86','84','82'];
+        let ROWS_BELOW = ['16','14','12','10','08','06','04','02'];
+        let ALL_ROWS = [...ROWS_ABOVE, ...ROWS_BELOW]; 
+        
+        const BAY_PAIRS = [
+            ['01','03'], ['05','07'], ['09','11'], ['13','15'],
+            ['17','19'], ['21','23'], ['25','27'], ['33','35'], ['37','39'],
+            ['01 IMO','03 IMO'], ['05 IMO','07 IMO'],
+            ['17 REEFER','19 REEFER'], ['33 REEFER','35 REEFER'], ['37 REEFER','39 REEFER']
+        ];
+
+        let shipTopology = {}; 
+        let savedShip = {};    
+        let currentPairIdx = 0;
+        
+        let lastClickedCell = null; 
+        let isShiftActionFill = true; 
+        
+        let currentState = { editMode: false };
+        let activeInvId = null; 
+
+        let globalInventory = [];
+
+        // --- 2. DADOS DA CARGA TTM 2026 ---
+        const cargoData2026 = [
+            { pod: 'TR', qty: 15, size: '20', base: 'dry', mods: [] },
+            { pod: 'VE', qty: 20, size: '20', base: 'dry', mods: [] },      
+            { pod: 'TR', qty: 15, size: '40', base: 'dry', mods: ['hc'] },  
+            { pod: 'TR', qty: 30, size: '40', base: 'opentop', mods: [] },
+            { pod: 'TR', qty: 20, size: '40', base: 'dry', mods: ['reefer', 'hc'] },
+            { pod: 'TR', qty: 4, size: '20', base: 'opentop', mods: ['oh'] },
+            { pod: 'VE', qty: 20, size: '40', base: 'dry', mods: ['reefer', 'hc'] },
+            { pod: 'VE', qty: 10, size: '20', base: 'dry', mods: [] },
+            { pod: 'BA', qty: 2, size: '40', base: 'opentop', mods: ['hc'] },
+            { pod: 'VE', qty: 20, size: '20', base: 'dry', mods: [] },
+            { pod: 'VE', qty: 30, size: '20', base: 'opentop', mods: [] },
+            { pod: 'VE', qty: 8, size: '20', base: 'tank', mods: [] },
+            { pod: 'VE', qty: 10, size: '40', base: 'flatrack', mods: ['empty'] },
+            { pod: 'VE', qty: 6, size: '20', base: 'flatrack', mods: [] },
+            { pod: 'VE', qty: 2, size: '20', base: 'flatrack', mods: ['oh'] },
+            { pod: 'VE', qty: 4, size: '40', base: 'opentop', mods: ['oh', 'hc'] },
+            { pod: 'VE', qty: 20, size: '20', base: 'dry', mods: [] },
+            { pod: 'NA', qty: 6, size: '40', base: 'imo', mods: ['imo8', 'hc'] }, 
+            { pod: 'LH', qty: 6, size: '40', base: 'imo', mods: ['imo5', 'hc'] }, 
+            { pod: 'BA', qty: 20, size: '40', base: 'dry', mods: ['reefer', 'hc'] },
+            { pod: 'LH', qty: 18, size: '40', base: 'dry', mods: [] },
+            { pod: 'LH', qty: 5, size: '40', base: 'flatrack', mods: ['ow', 'oh'] },
+            { pod: 'VE', qty: 14, size: '20', base: 'dry', mods: [] },
+            { pod: 'VE', qty: 15, size: '20', base: 'dry', mods: ['empty'] },
+            { pod: 'NA', qty: 20, size: '40', base: 'dry', mods: ['empty'] },
+            { pod: 'NA', qty: 8, size: '40', base: 'dry', mods: ['hc'] },
+            { pod: 'LB', qty: 10, size: '20', base: 'dry', mods: ['empty', 'hc'] },
+            { pod: 'LB', qty: 10, size: '20', base: 'platform', mods: ['empty'] },
+            { pod: 'LB', qty: 26, size: '40', base: 'dry', mods: ['hc'] },
+            { pod: 'LH', qty: 20, size: '40', base: 'dry', mods: ['reefer', 'hc'] },
+            { pod: 'LH', qty: 10, size: '45', base: 'dry', mods: ['hc'] },
+            { pod: 'NA', qty: 20, size: '40', base: 'dry', mods: [] },
+            { pod: 'NA', qty: 2, size: '40', base: 'flatrack', mods: ['ow', 'hc'] },
+            { pod: 'NA', qty: 18, size: '40', base: 'dry', mods: [] },
+            { pod: 'LB', qty: 5, size: '40', base: 'flatrack', mods: ['ow', 'oh'] },
+            { pod: 'LB', qty: 26, size: '40', base: 'dry', mods: ['hc'] },
+            { pod: 'NA', qty: 20, size: '40', base: 'dry', mods: ['reefer', 'hc'] },
+            { pod: 'BA', qty: 8, size: '20', base: 'opentop', mods: [] },
+            { pod: 'LB', qty: 10, size: '40', base: 'dry', mods: ['reefer', 'hc'] },
+            { pod: 'BA', qty: 10, size: '40', base: 'dry', mods: ['reefer', 'hc'] },
+            { pod: 'NA', qty: 2, size: '40', base: 'platform', mods: ['ol'] },
+            { pod: 'LH', qty: 16, size: '40', base: 'flatrack', mods: ['empty'] },
+            { pod: 'LH', qty: 20, size: '40', base: 'dry', mods: ['reefer', 'hc'] },
+            { pod: 'LH', qty: 2, size: '40', base: 'platform', mods: ['ol'] },
+            { pod: 'LB', qty: 20, size: '20', base: 'dry', mods: [] },
+            { pod: 'LB', qty: 2, size: '40', base: 'flatrack', mods: ['ow', 'oh'] },
+            { pod: 'LH', qty: 10, size: '40', base: 'dry', mods: ['reefer', 'hc'] },
+            { pod: 'LH', qty: 2, size: '40', base: 'opentop', mods: ['oh', 'hc'] },
+            { pod: 'LB', qty: 2, size: '40', base: 'flatrack', mods: ['ow'] },
+            { pod: 'LB', qty: 10, size: '40', base: 'opentop', mods: ['oh'] },
+            { pod: 'LH', qty: 20, size: '40', base: 'dry', mods: ['reefer', 'hc'] },
+            { pod: 'LB', qty: 20, size: '40', base: 'dry', mods: ['empty', 'hc'] },
+            { pod: 'LB', qty: 10, size: '20', base: 'tank', mods: [] },       
+            { pod: 'LB', qty: 10, size: '20', base: 'flatrack', mods: ['empty'] },
+            { pod: 'LH', qty: 10, size: '45', base: 'dry', mods: ['hc'] }
+        ];
+
+        // --- SISTEMA DE SALVAMENTO LOCAL ---
+        function persistData() {
+            const dataToSave = {
+                shipTopology,
+                savedShip,
+                globalInventory,
+                COLS,
+                ROWS_ABOVE,
+                ROWS_BELOW
+            };
+            localStorage.setItem('stowagePlanData', JSON.stringify(dataToSave));
+        }
+
+        function loadPersistedData() {
+            const stored = localStorage.getItem('stowagePlanData');
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    shipTopology = parsed.shipTopology || {};
+                    savedShip = parsed.savedShip || {};
+                    globalInventory = parsed.globalInventory || [];
+                    COLS = parsed.COLS || COLS;
+                    ROWS_ABOVE = parsed.ROWS_ABOVE || ROWS_ABOVE;
+                    ROWS_BELOW = parsed.ROWS_BELOW || ROWS_BELOW;
+                    ALL_ROWS = [...ROWS_ABOVE, ...ROWS_BELOW];
+                    return true;
+                } catch(e) {
+                    console.error("Erro ao carregar dados do LocalStorage", e);
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        function resetLocalData() {
+            if (confirm("ATENÇÃO: Isso vai apagar todo o seu progresso salvo no navegador e carregar o navio vazio. Tem certeza?")) {
+                localStorage.removeItem('stowagePlanData');
+                location.reload();
+            }
+        }
+
+        // --- 3. INICIALIZAÇÃO DA TOPOLOGIA ---
+        function isCellHiddenDefault(bayId, row, col) {
+            const b = parseInt(bayId); 
+            const rIdxA = ROWS_ABOVE.indexOf(row);
+            const rIdxB = ROWS_BELOW.indexOf(row);
+            
+            if (col === '00' && rIdxB !== -1) return true;
+
+            if (b <= 3) {
+                if (rIdxA !== -1) {
+                    if (row === '84' || row === '82') {
+                        if(['12','11','10','09'].includes(col)) return true;
+                        if(b === 1 && ['08','07'].includes(col)) return true;
+                    } else return true;
+                } else {
+                    if (row >= '14') return true;
+                    if (row === '12' && !['04','02','01','03'].includes(col)) return true;
+                    if (row === '10' && !['02','01'].includes(col)) return true;
+                    if (row === '08' && !['02','01'].includes(col)) return true;
+                    if (row <= '06') return true;
+                }
+                return false;
+            }
+
+            if (b >= 5 && b <= 31) {
+                if (rIdxA !== -1) {
+                    if ((col === '12' || col === '11') && (row === '82' || row === '84')) return true; 
+                    if (b === 5 && row >= '88') return true;
+                } else {
+                    if (row === '16' && ['12','11'].includes(col)) return true;
+                    if (row === '14' && ['12','11','10','09'].includes(col)) return true;
+                    if (row === '12' && ['12','11','10','09','08','07'].includes(col)) return true;
+                    if (row <= '10' && ['12','11','10','09','08','07','06','05'].includes(col)) return true;
+                    if (row <= '04' && ['04','03'].includes(col)) return true;
+                }
+                return false;
+            }
+
+            if (b >= 33) {
+                if (rIdxA !== -1) {
+                    if (row >= '86' && ['12','11','10','09'].includes(col)) return true;
+                } else {
+                    if (b >= 35 && row <= '08') return true;
+                    if (row <= '12' && ['12','11','10','09','08','07'].includes(col)) return true;
+                }
+                return false;
+            }
+            return false;
+        }
+
+        function updateGlobalArrays() {
+            ALL_ROWS = [...ROWS_ABOVE, ...ROWS_BELOW];
+            BAY_PAIRS.forEach(pair => {
+                pair.forEach(b => {
+                    ALL_ROWS.forEach(r => {
+                        COLS.forEach(c => {
+                            let coord = `${r}-${c}`;
+                            if (shipTopology[b][coord] === undefined) {
+                                shipTopology[b][coord] = false; 
+                            }
+                        });
+                    });
+                });
+            });
+            persistData();
+        }
+
+        function setupGridEditControls() {
+            document.getElementById('btnAddRoll').addEventListener('click', () => {
+                let evens = COLS.filter(c => parseInt(c) % 2 === 0 && c !== '00').map(c => parseInt(c));
+                let nextEven = evens.length > 0 ? Math.max(...evens) + 2 : 2;
+                let odds = COLS.filter(c => parseInt(c) % 2 !== 0).map(c => parseInt(c));
+                let nextOdd = odds.length > 0 ? Math.max(...odds) + 2 : 1;
+                
+                COLS.unshift(String(nextEven).padStart(2, '0'));
+                COLS.push(String(nextOdd).padStart(2, '0'));
+                updateGlobalArrays(); renderBayPairsUI();
+            });
+
+            document.getElementById('btnRemRoll').addEventListener('click', () => {
+                if(COLS.length <= 1) return;
+                COLS.shift(); COLS.pop();
+                updateGlobalArrays(); renderBayPairsUI();
+            });
+
+            document.getElementById('btnAddTierAbove').addEventListener('click', () => {
+                let max = ROWS_ABOVE.length > 0 ? Math.max(...ROWS_ABOVE.map(r => parseInt(r))) : 80;
+                let next = max + 2;
+                ROWS_ABOVE.unshift(String(next).padStart(2, '0'));
+                updateGlobalArrays(); renderBayPairsUI();
+            });
+
+            document.getElementById('btnRemTierAbove').addEventListener('click', () => {
+                if(ROWS_ABOVE.length === 0) return;
+                ROWS_ABOVE.shift();
+                updateGlobalArrays(); renderBayPairsUI();
+            });
+
+            document.getElementById('btnAddTierBelow').addEventListener('click', () => {
+                let max = ROWS_BELOW.length > 0 ? Math.max(...ROWS_BELOW.map(r => parseInt(r))) : 0;
+                let next = max + 2;
+                ROWS_BELOW.unshift(String(next).padStart(2, '0'));
+                updateGlobalArrays(); renderBayPairsUI();
+            });
+
+            document.getElementById('btnRemTierBelow').addEventListener('click', () => {
+                if(ROWS_BELOW.length === 0) return;
+                ROWS_BELOW.shift(); 
+                updateGlobalArrays(); renderBayPairsUI();
+            });
+        }
+
+        function initApp() {
+            document.getElementById('closeModalBtn').addEventListener('click', () => {
+                document.getElementById('welcomeModal').style.display = 'none';
+            });
+            document.getElementById('btnResetData').addEventListener('click', resetLocalData);
+
+            if (!loadPersistedData()) {
+                BAY_PAIRS.forEach(pair => {
+                    pair.forEach(b => {
+                        shipTopology[b] = {};
+                        savedShip[b] = {};
+                        ALL_ROWS.forEach(r => {
+                            COLS.forEach(c => {
+                                shipTopology[b][`${r}-${c}`] = isCellHiddenDefault(b, r, c);
+                            });
+                        });
+                    });
+                });
+                load2026Data();
+            } else {
+                document.getElementById('cargoTbody').innerHTML = '';
+                globalInventory.forEach(item => addCargoRow(item));
+            }
+
+            ['lb', 'lh', 'ba', 'na', 've', 'tr'].forEach(port => {
+                const input = document.getElementById('color-' + port);
+                if(input) {
+                    input.addEventListener('input', (e) => {
+                        document.documentElement.style.setProperty(`--port-${port}`, e.target.value);
+                    });
+                }
+            });
+
+            document.getElementById('tabCargo').addEventListener('click', () => switchTab('cargo'));
+            document.getElementById('tabManual').addEventListener('click', () => switchTab('manual'));
+            document.getElementById('addCargoRowBtn').addEventListener('click', () => addCargoRow());
+
+            const baySelect = document.getElementById('baySelect');
+            BAY_PAIRS.forEach((pair, idx) => {
+                let opt = document.createElement('option');
+                opt.value = idx; 
+                opt.innerText = `Bays ${pair[0]} & ${pair[1]}`;
+                baySelect.appendChild(opt);
+            });
+            
+            baySelect.addEventListener('change', (e) => {
+                currentPairIdx = parseInt(e.target.value);
+                lastClickedCell = null;
+                renderBayPairsUI();
+            });
+
+            document.getElementById('btnDeselect').addEventListener('click', () => {
+                activeInvId = null;
+                renderInventoryPalette();
+            });
+
+            document.getElementById('toggleEditBtn').addEventListener('click', function() {
+                currentState.editMode = !currentState.editMode;
+                this.classList.toggle('active');
+                document.getElementById('canvasArea').classList.toggle('edit-mode-active');
+                document.getElementById('gridEditPanel').style.display = currentState.editMode ? 'block' : 'none';
+                lastClickedCell = null;
+            });
+
+            document.getElementById('btnFilterIMO').addEventListener('click', function() {
+                this.classList.toggle('active');
+                document.getElementById('canvasArea').classList.toggle('filter-imo');
+            });
+            
+            document.getElementById('btnFilterReefer').addEventListener('click', function() {
+                this.classList.toggle('active');
+                document.getElementById('canvasArea').classList.toggle('filter-reefer');
+            });
+
+            // Associa a função de geração de PDF usando html2pdf.js com lógica de segurança total
+            document.getElementById('exportPdfBtn').addEventListener('click', generateRealPdf);
+
+            setupGridEditControls();
+            syncInventoryFromTable();
+            
+            if(localStorage.getItem('stowagePlanData') === null) {
+                document.getElementById('welcomeModal').style.display = 'flex';
+            } else {
+                document.getElementById('welcomeModal').style.display = 'none';
+            }
+        }
+
+        function getSiblingBay(bayId) {
+            let pair = BAY_PAIRS[currentPairIdx];
+            if (pair[0] === bayId) return pair[1];
+            if (pair[1] === bayId) return pair[0];
+            return null;
+        }
+
+        function switchTab(tab) {
+            document.getElementById('tabCargo').classList.remove('active');
+            document.getElementById('tabManual').classList.remove('active');
+            document.getElementById('cargoView').style.display = 'none';
+            document.getElementById('manualView').style.display = 'none';
+
+            if(tab === 'cargo') {
+                document.getElementById('tabCargo').classList.add('active');
+                document.getElementById('cargoView').style.display = 'flex';
+                document.getElementById('toggleEditBtn').style.display = 'none';
+            } else {
+                document.getElementById('tabManual').classList.add('active');
+                document.getElementById('manualView').style.display = 'flex';
+                document.getElementById('toggleEditBtn').style.display = 'block';
+                syncInventoryFromTable(); 
+                renderBayPairsUI();
+            }
+        }
+
+        // --- 4. FUNÇÕES DA TABELA DE CARGA (INPUT) ---
+        function generateId() {
+            return 'inv_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function addCargoRow(data = null) {
+            let tr = document.createElement('tr');
+            let id = data && data.id ? data.id : generateId();
+            tr.setAttribute('data-id', id);
+
+            let d_pod = data ? data.pod : 'TR';
+            let d_qty = data ? data.qty : 10;
+            let d_size = data ? data.size : '20';
+            let d_base = data ? data.base : 'dry';
+            let d_mods = data ? data.mods : [];
+
+            const isChecked = (val) => d_mods.includes(val) ? 'checked' : '';
+
+            tr.innerHTML = `
+                <td><select class="inp-pod" onchange="syncInventoryFromTable()">
+                    <option value="TR" ${d_pod==='TR'?'selected':''}>TR (Trieste)</option>
+                    <option value="VE" ${d_pod==='VE'?'selected':''}>VE (Veneza)</option>
+                    <option value="NA" ${d_pod==='NA'?'selected':''}>NA (Napoles)</option>
+                    <option value="BA" ${d_pod==='BA'?'selected':''}>BA (Barcelona)</option>
+                    <option value="LH" ${d_pod==='LH'?'selected':''}>LH (Le Havre)</option>
+                    <option value="LB" ${d_pod==='LB'?'selected':''}>LB (Lisboa)</option>
+                </select></td>
+                <td><input type="number" class="inp-qty" value="${d_qty}" min="1" onchange="syncInventoryFromTable()"></td>
+                <td><select class="inp-size" onchange="syncInventoryFromTable()">
+                    <option value="20" ${d_size==='20'?'selected':''}>20'</option>
+                    <option value="40" ${d_size==='40'?'selected':''}>40'</option>
+                    <option value="45" ${d_size==='45'?'selected':''}>45'</option>
+                </select></td>
+                <td><select class="inp-base" onchange="syncInventoryFromTable()">
+                    <option value="dry" ${d_base==='dry'?'selected':''}>Dry Cargo</option>
+                    <option value="opentop" ${d_base==='opentop'?'selected':''}>Open Top</option>
+                    <option value="flatrack" ${d_base==='flatrack'?'selected':''}>Flat Rack</option>
+                    <option value="platform" ${d_base==='platform'?'selected':''}>Plataforma</option>
+                    <option value="oh40" ${d_base==='oh40'?'selected':''}>Over Hang 40'</option>
+                    <option value="oh45" ${d_base==='oh45'?'selected':''}>Over Hang 45'</option>
+                    <option value="imo" ${d_base==='imo'?'selected':''}>IMO Class</option>
+                    <option value="livestock" ${d_base==='livestock'?'selected':''}>Live Stock</option>
+                    <option value="tank" ${d_base==='tank'?'selected':''}>Tank</option>
+                </select></td>
+                <td><div class="attr-checks" onchange="syncInventoryFromTable()">
+                    <label><input type="checkbox" value="hc" ${isChecked('hc')}>HC</label>
+                    <label><input type="checkbox" value="ow" ${isChecked('ow')}>OW</label>
+                    <label><input type="checkbox" value="oh" ${isChecked('oh')}>OH</label>
+                    <label><input type="checkbox" value="ol" ${isChecked('ol')}>OL</label>
+                    <label><input type="checkbox" value="empty" ${isChecked('empty')}>Empty (E)</label>
+                    <label><input type="checkbox" value="reefer" ${isChecked('reefer')}>Reefer (R)</label>
+                    <label><input type="checkbox" value="imo5" ${isChecked('imo5')}>IMO 5</label>
+                    <label><input type="checkbox" value="imo8" ${isChecked('imo8')}>IMO 8</label>
+                </div></td>
+                <td><button class="btn-clear-row" onclick="this.closest('tr').remove(); syncInventoryFromTable();">X</button></td>
+            `;
+            document.getElementById('cargoTbody').appendChild(tr);
+        }
+
+        function load2026Data() {
+            document.getElementById('cargoTbody').innerHTML = '';
+            cargoData2026.forEach(item => {
+                item.id = generateId(); 
+                addCargoRow(item);
+            });
+            syncInventoryFromTable();
+        }
+
+        function syncInventoryFromTable() {
+            let oldInventory = [...globalInventory];
+            globalInventory = [];
+            
+            document.querySelectorAll('#cargoTbody tr').forEach(row => {
+                let id = row.getAttribute('data-id');
+                let pod = row.querySelector('.inp-pod').value;
+                let qty = parseInt(row.querySelector('.inp-qty').value) || 0;
+                let size = row.querySelector('.inp-size').value;
+                let base = row.querySelector('.inp-base').value;
+                let mods = [];
+                row.querySelectorAll('.attr-checks input:checked').forEach(cb => mods.push(cb.value));
+
+                let oldItem = oldInventory.find(i => i.id === id);
+                let placed = oldItem ? oldItem.placed : 0; 
+
+                globalInventory.push({ id, pod, qty, size, base, mods, placed });
+            });
+            recalculateInventory(); 
+            persistData();
+        }
+
+        // --- 5. RENDERIZAÇÃO DA PALETA LATERAL ---
+        function renderInventoryPalette() {
+            const list = document.getElementById('inventoryList');
+            list.innerHTML = '';
+            
+            globalInventory.forEach(inv => {
+                let remaining = inv.qty - inv.placed;
+                let isComplete = remaining <= 0;
+                let isActive = activeInvId === inv.id;
+                
+                let bgColor = `var(--port-${inv.pod.toLowerCase()})`;
+                let layersHtml = '';
+                if(inv.base && inv.base !== 'dry') layersHtml += `<div class="layer base-${inv.base}"></div>`;
+                inv.mods.forEach(m => layersHtml += `<div class="layer mod-${m}"></div>`);
+
+                let el = document.createElement('div');
+                el.className = `palette-item ${isActive ? 'active' : ''} ${isComplete ? 'complete' : ''}`;
+                
+                el.onclick = () => {
+                    if (!isComplete) {
+                        activeInvId = inv.id;
+                        renderInventoryPalette();
+                    } else if (isComplete && isActive) {
+                        activeInvId = null;
+                        renderInventoryPalette();
+                    }
+                };
+                
+                el.innerHTML = `
+                    <div class="palette-cell" style="background-color: ${bgColor};">
+                        <span class="palette-port" style="color: ${inv.base==='oh40' ? '#111' : '#000'}">${inv.pod}</span>
+                        ${layersHtml}
+                    </div>
+                    <div class="palette-info">
+                        <div class="palette-title">${inv.size}' ${inv.base.toUpperCase()}</div>
+                        <div class="palette-mods">${inv.mods.length ? inv.mods.join(', ').toUpperCase() : 'STANDARD'}</div>
+                    </div>
+                    <div class="palette-counter ${isComplete ? 'zero' : ''}">
+                        ${remaining}
+                    </div>
+                `;
+                list.appendChild(el);
+            });
+            
+            let actItem = globalInventory.find(i => i.id === activeInvId);
+            if (actItem && (actItem.qty - actItem.placed) <= 0) {
+                activeInvId = null;
+                setTimeout(renderInventoryPalette, 10);
+            }
+        }
+
+        function recalculateInventory() {
+            globalInventory.forEach(inv => inv.placed = 0);
+            for (let bay in savedShip) {
+                for (let coord in savedShip[bay]) {
+                    let cell = savedShip[bay][coord];
+                    if (cell.invId !== undefined) {
+                        let inv = globalInventory.find(i => i.id === cell.invId);
+                        if(inv) inv.placed++;
+                        else delete savedShip[bay][coord]; 
+                    }
+                }
+            }
+            renderInventoryPalette();
+            persistData();
+        }
+
+        // --- 6. RENDERIZAÇÃO DAS BAYS ---
+        function getPortColorHex(portCode) {
+            let input = document.getElementById('color-' + portCode.toLowerCase());
+            return input ? input.value : '#ffffff';
+        }
+
+        function generatePairHtml(bay1, bay2, isPrint = false) {
+            let html = `
+            <div class="bay-pair-wrapper">
+                <div class="pair-container">
+                    ${generateBayGridHtml(bay1, isPrint)}
+                    ${generateBayGridHtml(bay2, isPrint)}
+                </div>
+            </div>
+            `;
+            return html;
+        }
+
+        function generateBayGridHtml(bayId, isPrint = false) {
+            let savedData = savedShip[bayId] || {};
+            
+            let bayHtml = `
+            <div class="bay-container-wrapper" style="display: flex; flex-direction: column; align-items: center;">
+                <h3 style="font-size: 24px; color: #111; margin: 0 0 10px 0; letter-spacing: 1px;">BAY ${bayId}</h3>
+                <div class="bay-container">
+                    <div class="axis-title">ROLL</div>
+            `;
+            
+            let colLabels = '<div class="axis-col-labels">';
+            COLS.forEach(c => colLabels += `<div class="axis-label">${c}</div>`);
+            colLabels += '</div>';
+            
+            bayHtml += colLabels;
+
+            bayHtml += `<div class="bay-grid-flex"><div class="axis-title-tier">TIER</div><div>`;
+
+            const drawRows = (rowsArray) => {
+                let section = '';
+                rowsArray.forEach(row => {
+                    let rowHtml = `<div class="axis-row"><div class="row-label">${row}</div><div class="grid-row">`;
+                    COLS.forEach(col => {
+                        let coord = `${row}-${col}`;
+                        let isHidden = shipTopology[bayId][coord] ? 'hidden' : '';
+                        let cellData = savedData[coord];
+                        
+                        let contentHtml = '';
+                        let bgColorStyle = isPrint ? 'background-color: #ffffff !important;' : 'background-color: var(--port-empty);';
+
+                        if (cellData) {
+                            if (cellData.base === 'blocked40') {
+                                contentHtml = `<div class="layer base-blocked40"></div>`;
+                            } else if (cellData.invId !== undefined) {
+                                let inv = globalInventory.find(i => i.id === cellData.invId);
+                                if(inv) {
+                                    let actualHex = getPortColorHex(inv.pod);
+                                    bgColorStyle = isPrint ? `background-color: ${actualHex} !important;` : `background-color: var(--port-${inv.pod.toLowerCase()});`;
+                                    
+                                    contentHtml += `<span class="port-text" style="color: ${inv.base==='oh40' ? '#111' : '#000'}">${inv.pod.toUpperCase()}</span>`;
+                                    if(inv.base && inv.base !== 'dry') contentHtml += `<div class="layer base-${inv.base}"></div>`;
+                                    inv.mods.forEach(m => contentHtml += `<div class="layer mod-${m}"></div>`);
+                                }
+                            }
+                        }
+
+                        let attrs = !isPrint ? `data-coord="${coord}" data-row="${row}" data-col="${col}" data-bay="${bayId}"` : '';
+                        rowHtml += `<div class="cell ${isHidden}" ${attrs} style="${bgColorStyle}">${contentHtml}</div>`;
+                    });
+                    rowHtml += `</div></div>`;
+                    section += rowHtml;
+                });
+                return section;
+            };
+
+            bayHtml += drawRows(ROWS_ABOVE);
+            bayHtml += `<div class="deck-separator"></div>`;
+            bayHtml += drawRows(ROWS_BELOW);
+            
+            bayHtml += `</div></div>`; 
+            bayHtml += colLabels;
+            bayHtml += `</div></div>`; 
+            
+            return bayHtml;
+        }
+
+        function renderBayPairsUI() {
+            const pair = BAY_PAIRS[currentPairIdx];
+            const container = document.getElementById('pairContainer');
+            container.innerHTML = generatePairHtml(pair[0], pair[1], false);
+            attachCellListeners();
+        }
+
+        // --- EXPORTAR PDF (MOTOR DE REFERÊNCIA FUNCIONAL COM HTML2PDF.JS) ---
+        async function generateRealPdf() {
+            const loadingOverlay = document.getElementById('pdfLoadingOverlay');
+            const printArea = document.getElementById('printArea');
+            const mainEl = document.querySelector('main');
+            const headerEl = document.querySelector('header');
+            
+            loadingOverlay.style.display = 'flex';
+            printArea.innerHTML = ''; 
+            
+            let fullHtml = '';
+            BAY_PAIRS.forEach(pair => {
+                fullHtml += `<div class="pdf-page">`;
+                fullHtml += generatePairHtml(pair[0], pair[1], true);
+                fullHtml += `</div>`;
+            });
+            
+            printArea.innerHTML = fullHtml;
+
+            // Essa é a exata lógica de exibição do código de referência que funcionava:
+            headerEl.style.display = 'none';
+            mainEl.style.display = 'none';
+            printArea.style.display = 'block';
+
+            // Aguarda o navegador desenhar tudo na tela
+            await new Promise(r => setTimeout(r, 500));
+
+            const opt = {
+                margin:       0,
+                filename:     'BayPlan_Azimuth_2026.pdf',
+                image:        { type: 'jpeg', quality: 1 },
+                html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollY: 0, windowWidth: document.documentElement.offsetWidth },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+            };
+
+            try {
+                await html2pdf().set(opt).from(printArea).save();
+            } catch(e) {
+                alert("Houve um erro ao gerar o PDF. " + e);
+            }
+
+            // Restaura
+            printArea.style.display = 'none';
+            printArea.innerHTML = ''; 
+            headerEl.style.display = 'flex';
+            mainEl.style.display = 'flex';
+            loadingOverlay.style.display = 'none';
+        }
+
+        // --- 7. LÓGICA DE CLIQUE E SHIFT (Pintura / Deleção) ---
+        function removeContainer(bayId, rStr, cStr) {
+            let coord = `${rStr}-${cStr}`;
+            let existing = savedShip[bayId][coord];
+            if (!existing) return;
+            
+            if (existing.base === 'blocked40') {
+                let sibling = getSiblingBay(bayId);
+                if(sibling && savedShip[sibling][coord]) {
+                    delete savedShip[sibling][coord];
+                }
+                delete savedShip[bayId][coord];
+            } 
+            else if (existing.invId !== undefined) {
+                let inv = globalInventory.find(i => i.id === existing.invId);
+                if (inv && (inv.size === '40' || inv.size === '45')) {
+                    let sibling = getSiblingBay(bayId);
+                    if(sibling) delete savedShip[sibling][coord];
+                }
+                delete savedShip[bayId][coord];
+            }
+        }
+
+        function canPlaceContainer(inv, bayId, showAlert = true) {
+            let isImo = inv.base === 'imo' || inv.mods.includes('imo5') || inv.mods.includes('imo8');
+            let isReefer = inv.base === 'reefer' || inv.mods.includes('reefer');
+
+            let isImoBay = bayId.includes('IMO');
+            let isReeferBay = bayId.includes('REEFER');
+
+            if (isImo && !isImoBay) {
+                if (showAlert) alert("Contêineres IMO devem ser alocados nas plantas específicas de IMO (Ex: 01 IMO).");
+                return false;
+            }
+            if (isReefer && !isReeferBay) {
+                if (showAlert) alert("Contêineres Reefer devem ser alocados nas plantas específicas de REEFER (Ex: 17 REEFER).");
+                return false;
+            }
+            if (!isImo && isImoBay) {
+                if (showAlert) alert("Apenas contêineres IMO podem ser alocados nestas plantas de IMO.");
+                return false;
+            }
+            if (!isReefer && isReeferBay) {
+                if (showAlert) alert("Apenas contêineres Reefer podem ser alocados nestas plantas de REEFER.");
+                return false;
+            }
+            return true;
+        }
+
+        function placeContainer(bayId, rStr, cStr, showAlert = true) {
+            let coord = `${rStr}-${cStr}`;
+            if (shipTopology[bayId][coord]) return; 
+            if (savedShip[bayId][coord]) return; 
+            
+            if (activeInvId !== null) {
+                let inv = globalInventory.find(i => i.id === activeInvId);
+                let remaining = inv.qty - inv.placed;
+                
+                if (remaining > 0) {
+                    if (!canPlaceContainer(inv, bayId, showAlert)) return;
+
+                    if (inv.size === '40' || inv.size === '45') {
+                        let sibling = getSiblingBay(bayId);
+                        if (!sibling || shipTopology[sibling][coord] || savedShip[sibling][coord]) {
+                            return; 
+                        }
+                        savedShip[sibling][coord] = { base: 'blocked40' }; 
+                    }
+                    
+                    savedShip[bayId][coord] = { invId: inv.id };
+                    inv.placed++; 
+                }
+            }
+        }
+
+        function attachCellListeners() {
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.addEventListener('mousedown', function(e) {
+                    let rStr = this.getAttribute('data-row');
+                    let cStr = this.getAttribute('data-col');
+                    let bayId = this.getAttribute('data-bay');
+                    
+                    let rIdx = ALL_ROWS.indexOf(rStr);
+                    let cIdx = COLS.indexOf(cStr);
+
+                    if (e.shiftKey && activeInvId !== null && isShiftActionFill && !currentState.editMode) {
+                        let inv = globalInventory.find(i => i.id === activeInvId);
+                        if (inv && !canPlaceContainer(inv, bayId, true)) return;
+                    }
+
+                    if (e.shiftKey && lastClickedCell && lastClickedCell.bayId === bayId) {
+                        let minR = Math.min(rIdx, lastClickedCell.r);
+                        let maxR = Math.max(rIdx, lastClickedCell.r);
+                        let minC = Math.min(cIdx, lastClickedCell.c);
+                        let maxC = Math.max(cIdx, lastClickedCell.c);
+                        
+                        for(let r = minR; r <= maxR; r++) {
+                            for(let c = minC; c <= maxC; c++) {
+                                let targetCoord = `${ALL_ROWS[r]}-${COLS[c]}`;
+                                if(currentState.editMode) {
+                                     shipTopology[bayId][targetCoord] = isShiftActionFill;
+                                } else {
+                                     if(isShiftActionFill) placeContainer(bayId, ALL_ROWS[r], COLS[c], false);
+                                     else removeContainer(bayId, ALL_ROWS[r], COLS[c]);
+                                }
+                            }
+                        }
+                    } else {
+                        let coord = `${rStr}-${cStr}`;
+                        
+                        if(currentState.editMode) {
+                             shipTopology[bayId][coord] = !shipTopology[bayId][coord];
+                             isShiftActionFill = shipTopology[bayId][coord]; 
+                        } else {
+                             let existing = savedShip[bayId][coord];
+                             if(existing && (existing.invId !== undefined || existing.base === 'blocked40')) {
+                                 removeContainer(bayId, rStr, cStr);
+                                 isShiftActionFill = false; 
+                             } else {
+                                 placeContainer(bayId, rStr, cStr, true);
+                                 isShiftActionFill = true; 
+                             }
+                        }
+                        lastClickedCell = { r: rIdx, c: cIdx, bayId: bayId };
+                    }
+                    
+                    recalculateInventory(); 
+                    renderBayPairsUI();       
+                });
+            });
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
