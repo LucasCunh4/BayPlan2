@@ -193,15 +193,15 @@
 
         .axis-row { display: flex; margin-bottom: 0px; }
         .axis-col-labels { display: flex; margin-left: 28px; margin-bottom: 4px; margin-top: 4px;}
-        .axis-label { width: var(--cell-size); text-align: center; font-size: 11px; font-weight: bold; color: #666; }
-        .row-label { width: 24px; display: flex; align-items: center; justify-content: flex-end; margin-right: 4px; font-size: 11px; font-weight: bold; color: #666; }
+        .axis-label { width: var(--cell-size); text-align: center; font-size: 11px; font-weight: bold; color: #666; box-sizing: border-box; }
+        .row-label { width: 24px; display: flex; align-items: center; justify-content: flex-end; margin-right: 4px; font-size: 11px; font-weight: bold; color: #666; box-sizing: border-box; }
         .deck-separator { width: 100%; height: 6px; background-color: #111; margin: 6px 0; border-radius: 2px;}
         
         .grid-row { display: flex; }
         .cell {
             width: var(--cell-size); height: var(--cell-size); border: 1px solid var(--cell-border);
             background-color: var(--port-empty); position: relative; cursor: pointer; display: flex;
-            align-items: center; justify-content: center; transition: 0.1s;
+            align-items: center; justify-content: center; transition: 0.1s; box-sizing: border-box;
         }
         .cell:hover { opacity: 0.8; border: 2px solid #000; z-index: 50;}
         .cell.hidden { visibility: hidden; border: none; pointer-events: none; }
@@ -227,7 +227,7 @@
         .layer.base-tank::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #111; }
         .layer.base-tank::after { content: 'T'; position: absolute; top: 2px; right: 3px; font-size: 8px; font-weight: bold; color: #111; }
         
-        /* O "X" DE 40 PÉS: Fundo branco puro com linha fina via texto */
+        /* O "X" DE 40 PÉS: Fundo branco e o X centralizado usando texto por segurança no PDF */
         .layer.base-blocked40 { background-color: #ffffff !important; border: 1px solid #111; }
         .layer.base-blocked40::before { 
             content: 'X'; 
@@ -300,8 +300,8 @@
                 <li><strong style="color: #d9534f;">MUDE AS CORES (OBRIGATÓRIO):</strong> Vá na aba "1. Lista de Carga", logo abaixo, e altere a paleta de cores dos portos clicando nas caixas de cor.</li>
                 <li><strong>Salvamento Automático:</strong> Os seus dados são salvos localmente. Tudo o que você alocar fica gravado mesmo se fechar o navegador.</li>
                 <li><strong>Edição de Grade Individual:</strong> Clicando em "Editar Casco" você pode expandir as colunas e linhas da Bay que você selecionar. Além disso, você pode <strong>clicar no nome dos Tiers e Rolls no próprio desenho</strong> para renomeá-los.</li>
-                <li><strong>Preenchimento Rápido (Lotes):</strong> Clique na primeira célula, segure <strong>SHIFT</strong> e clique na última para preencher linhas inteiras.</li>
-                <li><strong>Exportar PDF:</strong> O sistema isola apenas os desenhos e gera um arquivo A4 Paisagem (Landscape) real e centralizado.</li>
+                <li><strong>Preenchimento Rápido (Lotes):</strong> Clique na primeira célula, segure <strong>SHIFT</strong> e clique na última para preencher blocos inteiros.</li>
+                <li><strong>Exportar PDF:</strong> O sistema isola apenas os desenhos e gera um arquivo A4 Paisagem (Landscape) real sem cortes.</li>
             </ul>
             <button id="closeModalBtn" class="btn-start">Entendido, vamos começar!</button>
         </div>
@@ -372,6 +372,13 @@
                     <select id="editGridBaySelect" class="grid-edit-select"></select>
                     <p style="font-size: 11px; text-align: center; color: #666; margin-bottom: 10px;">Clique diretamente nos números do eixo no desenho para renomear.</p>
                     
+                    <!-- Novo Botão para Adicionar/Remover Roll 00 -->
+                    <div class="grid-edit-row">
+                        <span>Centro (Roll 00)</span>
+                        <div class="grid-edit-btns">
+                            <button id="btnToggleRoll00">Alternar</button>
+                        </div>
+                    </div>
                     <div class="grid-edit-row">
                         <span>Colunas (Rolls)</span>
                         <div class="grid-edit-btns">
@@ -443,7 +450,7 @@
         let shipTopology = {}; 
         let savedShip = {};    
         let currentPairIdx = 0;
-        let bayGrids = {}; // Armazena a configuração de eixos independente por Bay
+        let bayGrids = {}; 
         
         let lastClickedCell = null; 
         let isShiftActionFill = true; 
@@ -515,7 +522,7 @@
         // --- SISTEMA DE SALVAMENTO LOCAL ---
         function persistData() {
             const dataToSave = {
-                version: 2, // Força a recriação do casco para bater com o layout exato do PDF Aliança
+                version: 2, 
                 shipTopology,
                 savedShip,
                 globalInventory,
@@ -529,7 +536,7 @@
             if (stored) {
                 try {
                     const parsed = JSON.parse(stored);
-                    if (parsed.version !== 2) return false; // Apaga o cache antigo para forçar o novo layout do PDF
+                    if (parsed.version !== 2) return false; 
                     
                     shipTopology = parsed.shipTopology || {};
                     savedShip = parsed.savedShip || {};
@@ -603,7 +610,7 @@
                 }
             }
 
-            // BAY 17 e 19 (Gap Superior Exato do PDF)
+            // BAY 17 e 19 
             if (b === 17 || b === 19) {
                 if (isAbove) {
                     if (row === '92') return true;
@@ -626,7 +633,7 @@
                 }
             }
 
-            // BAY 37 e 39 (Sem porão)
+            // BAY 37 e 39 
             if (b === 37 || b === 39) {
                 if (isAbove) return false;
                 else return true;
@@ -680,6 +687,34 @@
         }
 
         function setupGridEditControls() {
+            // Controle novo para alternar a coluna 00
+            document.getElementById('btnToggleRoll00').addEventListener('click', () => {
+                let bayId = document.getElementById('editGridBaySelect').value;
+                let grid = bayGrids[bayId];
+
+                if (grid.cols.includes('00')) {
+                    // Remove 00
+                    grid.cols = grid.cols.filter(c => c !== '00');
+                } else {
+                    // Adiciona 00 no meio exato
+                    let insertIndex = grid.cols.findIndex(c => parseInt(c) % 2 !== 0);
+                    if (insertIndex === -1) {
+                        grid.cols.push('00');
+                    } else {
+                        grid.cols.splice(insertIndex, 0, '00');
+                    }
+                    
+                    let all_rows = [...grid.rowsAbove, ...grid.rowsBelow];
+                    all_rows.forEach(r => {
+                        if (shipTopology[bayId][`${r}-00`] === undefined) {
+                            shipTopology[bayId][`${r}-00`] = false;
+                        }
+                    });
+                }
+                persistData(); 
+                renderBayPairsUI();
+            });
+
             document.getElementById('btnAddRoll').addEventListener('click', () => {
                 let bayId = document.getElementById('editGridBaySelect').value;
                 let grid = bayGrids[bayId];
@@ -1125,7 +1160,7 @@
             attachCellListeners();
         }
 
-        // --- EXPORTAR PDF (IDÊNTICO AO CÓDIGO DA REFERÊNCIA) ---
+        // --- EXPORTAR PDF (MOTOR DE REFERÊNCIA FUNCIONAL) ---
         async function generateRealPdf() {
             const loadingOverlay = document.getElementById('pdfLoadingOverlay');
             const printArea = document.getElementById('printArea');
