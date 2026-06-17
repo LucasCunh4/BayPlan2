@@ -133,7 +133,7 @@
         .btn-filter { flex: 1; background: #34495e; color: white; border: none; padding: 8px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px;}
         .btn-filter.active { background: #f39c12; }
 
-        /* PAINEL DE EXPANSÃO DA GRADE (MODO EDIÇÃO) */
+        /* PAINEL DE EXPANSÃO DA GRADE */
         .grid-edit-panel { background: #ffebee; border: 1px solid #ffcaca; border-radius: 6px; padding: 12px; margin-bottom: 15px; display: none; }
         .grid-edit-panel h4 { margin: 0 0 10px 0; color: #c9302c; font-size: 13px; text-align: center; }
         .grid-edit-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
@@ -191,7 +191,10 @@
         .bay-grid-flex { display: flex; align-items: center; }
 
         .axis-row { display: flex; margin-bottom: 0px; }
-        .axis-col-labels { display: flex; margin-left: 24px; margin-bottom: 4px; margin-top: 4px;}
+        
+        /* Alinhamento Perfeito das Colunas: 24px (width do row-label) + 4px (margin do row-label) = 28px */
+        .axis-col-labels { display: flex; margin-left: 28px; margin-bottom: 4px; margin-top: 4px;}
+        
         .axis-label { width: var(--cell-size); text-align: center; font-size: 11px; font-weight: bold; color: #666; }
         .row-label { width: 24px; display: flex; align-items: center; justify-content: flex-end; margin-right: 4px; font-size: 11px; font-weight: bold; color: #666; }
         .deck-separator { width: 100%; height: 6px; background-color: #111; margin: 6px 0; border-radius: 2px;}
@@ -205,8 +208,14 @@
         .cell:hover { opacity: 0.8; border: 2px solid #000; z-index: 50;}
         .cell.hidden { visibility: hidden; border: none; pointer-events: none; }
         
+        /* Efeitos visuais do Modo de Edição */
         .edit-mode-active .cell { cursor: cell; pointer-events: auto !important;}
         .edit-mode-active .cell.hidden { visibility: visible; background-color: #eee; border: 1px dashed #aaa; opacity: 0.6; }
+        
+        /* Efeito de campo editável nos Tiers e Rolls */
+        .edit-mode-active .axis-label, .edit-mode-active .row-label {
+            background-color: #fff9c4; border: 1px dashed #f57f17; border-radius: 3px; cursor: text;
+        }
 
         .port-text { font-size: 11px; font-weight: bold; color: #000; position: relative; z-index: 20; pointer-events: none; text-shadow: 0px 0px 3px rgba(255,255,255,0.9); }
 
@@ -222,7 +231,7 @@
         .layer.base-tank::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #111; }
         .layer.base-tank::after { content: 'T'; position: absolute; top: 2px; right: 3px; font-size: 8px; font-weight: bold; color: #111; }
         
-        /* O "X" DE 40 PÉS: Fundo branco e o X centralizado de forma segura usando método de texto para compatibilidade no PDF */
+        /* O "X" DE 40 PÉS: Fundo branco suave cruzado, implementado como texto limpo e legível em PDF */
         .layer.base-blocked40 { background-color: #ffffff !important; border: 1px solid #111; }
         .layer.base-blocked40::before { 
             content: 'X'; 
@@ -281,21 +290,22 @@
 </head>
 <body>
 
+    <!-- OVERLAY DE LOADING -->
     <div id="pdfLoadingOverlay">
         <div class="spinner"></div>
         <h2>Processando Dados...</h2>
         <p>Isso pode levar alguns segundos. Não feche a página.</p>
     </div>
 
+    <!-- MODAL DE BOAS VINDAS -->
     <div id="welcomeModal" class="modal-overlay">
         <div class="modal-content">
             <h2>🚢 Stowage Plan Pro - Bem-vindo</h2>
             <ul>
                 <li><strong style="color: #d9534f;">MUDE AS CORES (OBRIGATÓRIO):</strong> Vá na aba "1. Lista de Carga", logo abaixo, e altere a paleta de cores dos portos clicando nas caixas de cor.</li>
                 <li><strong>Salvamento Automático:</strong> Os seus dados são salvos localmente. Tudo o que você alocar fica gravado mesmo se fechar o navegador.</li>
-                <li><strong>Edição de Grade:</strong> Clicando em "Editar Casco" você pode expandir as colunas (Rolls) e linhas (Tiers) do navio inteiro no painel lateral.</li>
+                <li><strong>Edição de Grade:</strong> Clicando em "Editar Casco" você pode expandir as colunas e linhas do navio. Além disso, você pode <strong>clicar no nome dos Tiers e Rolls</strong> para renomeá-los livremente.</li>
                 <li><strong>Preenchimento Rápido (Lotes):</strong> Clique na primeira célula, segure <strong>SHIFT</strong> e clique na última para preencher linhas inteiras.</li>
-                <li><strong>Exportar PDF:</strong> O sistema isola apenas os desenhos e gera um arquivo A4 Paisagem (Landscape) real sem que o navegador desconfigure tudo.</li>
             </ul>
             <button id="closeModalBtn" class="btn-start">Entendido, vamos começar!</button>
         </div>
@@ -316,6 +326,7 @@
     </header>
 
     <main>
+        <!-- ================= TELA 1: LISTA DE CARGA (INPUT) ================= -->
         <section id="cargoView">
             <div class="cargo-header">
                 <h3 style="margin-bottom: 5px;">Tabela de Contêineres (Padrão TTM 2026 Carregado)</h3>
@@ -345,7 +356,8 @@
                         </tr>
                     </thead>
                     <tbody id="cargoTbody">
-                        </tbody>
+                        <!-- Preenchido via JS -->
+                    </tbody>
                 </table>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <button class="btn-add" id="addCargoRowBtn">+ Adicionar Linha</button>
@@ -354,11 +366,14 @@
             </div>
         </section>
 
+        <!-- ================= TELA 2: PLANO MANUAL & VISÃO ================= -->
         <section id="manualView">
             <aside class="sidebar">
                 
+                <!-- PAINEL DE EXPANSÃO DA GRADE (SÓ APARECE NO MODO EDIÇÃO) -->
                 <div id="gridEditPanel" class="grid-edit-panel">
                     <h4>⚙️ Estrutura Global do Grid</h4>
+                    <p style="font-size: 11px; text-align: center; color: #666; margin-bottom: 10px;">Clique nos números das linhas ou colunas na planta para renomeá-los manualmente.</p>
                     <div class="grid-edit-row">
                         <span>Colunas (Rolls)</span>
                         <div class="grid-edit-btns">
@@ -398,17 +413,20 @@
                         <button class="btn-deselect" id="btnDeselect">Desmarcar</button>
                     </div>
                     <div id="inventoryList">
-                        </div>
+                        <!-- Gerado dinamicamente -->
+                    </div>
                 </div>
             </aside>
 
             <section class="canvas-area" id="canvasArea">
                 <div id="pairContainer">
-                    </div>
+                    <!-- Gerado dinamicamente via JS -->
+                </div>
             </section>
         </section>
     </main>
 
+    <!-- AREA OCULTA PARA GERAÇÃO DA IMAGEM PDF -->
     <div id="printArea"></div>
 
     <script>
@@ -587,6 +605,58 @@
             return false;
         }
 
+        // --- SISTEMA DE RENOMEAÇÃO CUSTOMIZADA DE TIERS E ROLLS ---
+        function renameAxis(type, oldVal, el) {
+            let newVal = el.innerText.trim();
+            if (!newVal || newVal === oldVal) {
+                el.innerText = oldVal;
+                return;
+            }
+
+            // Atualiza as chaves nos Arrays Globais
+            if (type === 'col') {
+                let idx = COLS.indexOf(oldVal);
+                if (idx !== -1) COLS[idx] = newVal;
+            } else if (type === 'row-above') {
+                let idx = ROWS_ABOVE.indexOf(oldVal);
+                if (idx !== -1) ROWS_ABOVE[idx] = newVal;
+            } else if (type === 'row-below') {
+                let idx = ROWS_BELOW.indexOf(oldVal);
+                if (idx !== -1) ROWS_BELOW[idx] = newVal;
+            }
+            ALL_ROWS = [...ROWS_ABOVE, ...ROWS_BELOW];
+
+            // Reescreve o dicionário das Plantas migrando os dados da numeração antiga para a nova
+            let newTopology = {};
+            let newSavedShip = {};
+
+            BAY_PAIRS.forEach(pair => {
+                pair.forEach(b => {
+                    newTopology[b] = {};
+                    newSavedShip[b] = {};
+                    
+                    Object.keys(shipTopology[b]).forEach(coord => {
+                        let [r, c] = coord.split('-');
+                        let newR = (type.includes('row') && r === oldVal) ? newVal : r;
+                        let newC = (type === 'col' && c === oldVal) ? newVal : c;
+                        newTopology[b][`${newR}-${newC}`] = shipTopology[b][coord];
+                    });
+
+                    Object.keys(savedShip[b]).forEach(coord => {
+                        let [r, c] = coord.split('-');
+                        let newR = (type.includes('row') && r === oldVal) ? newVal : r;
+                        let newC = (type === 'col' && c === oldVal) ? newVal : c;
+                        newSavedShip[b][`${newR}-${newC}`] = savedShip[b][coord];
+                    });
+                });
+            });
+
+            shipTopology = newTopology;
+            savedShip = newSavedShip;
+            persistData();
+            renderBayPairsUI();
+        }
+
         function updateGlobalArrays() {
             ALL_ROWS = [...ROWS_ABOVE, ...ROWS_BELOW];
             BAY_PAIRS.forEach(pair => {
@@ -711,6 +781,7 @@
                 document.getElementById('canvasArea').classList.toggle('edit-mode-active');
                 document.getElementById('gridEditPanel').style.display = currentState.editMode ? 'block' : 'none';
                 lastClickedCell = null;
+                renderBayPairsUI(); // Re-renderiza para ativar os atributos contenteditable
             });
 
             document.getElementById('btnFilterIMO').addEventListener('click', function() {
@@ -723,7 +794,6 @@
                 document.getElementById('canvasArea').classList.toggle('filter-reefer');
             });
 
-            // Associa a função de geração de PDF usando html2pdf.js com lógica de segurança total
             document.getElementById('exportPdfBtn').addEventListener('click', generateRealPdf);
 
             setupGridEditControls();
@@ -939,6 +1009,7 @@
 
         function generateBayGridHtml(bayId, isPrint = false) {
             let savedData = savedShip[bayId] || {};
+            let isEditable = currentState.editMode && !isPrint;
             
             let bayHtml = `
             <div class="bay-container-wrapper" style="display: flex; flex-direction: column; align-items: center;">
@@ -948,17 +1019,17 @@
             `;
             
             let colLabels = '<div class="axis-col-labels">';
-            COLS.forEach(c => colLabels += `<div class="axis-label">${c}</div>`);
+            COLS.forEach(c => colLabels += `<div class="axis-label" contenteditable="${isEditable ? 'true' : 'false'}" onblur="renameAxis('col', '${c}', this)">${c}</div>`);
             colLabels += '</div>';
             
             bayHtml += colLabels;
 
             bayHtml += `<div class="bay-grid-flex"><div class="axis-title-tier">TIER</div><div>`;
 
-            const drawRows = (rowsArray) => {
+            const drawRows = (rowsArray, typeStr) => {
                 let section = '';
                 rowsArray.forEach(row => {
-                    let rowHtml = `<div class="axis-row"><div class="row-label">${row}</div><div class="grid-row">`;
+                    let rowHtml = `<div class="axis-row"><div class="row-label" contenteditable="${isEditable ? 'true' : 'false'}" onblur="renameAxis('${typeStr}', '${row}', this)">${row}</div><div class="grid-row">`;
                     COLS.forEach(col => {
                         let coord = `${row}-${col}`;
                         let isHidden = shipTopology[bayId][coord] ? 'hidden' : '';
@@ -992,9 +1063,9 @@
                 return section;
             };
 
-            bayHtml += drawRows(ROWS_ABOVE);
+            bayHtml += drawRows(ROWS_ABOVE, 'row-above');
             bayHtml += `<div class="deck-separator"></div>`;
-            bayHtml += drawRows(ROWS_BELOW);
+            bayHtml += drawRows(ROWS_BELOW, 'row-below');
             
             bayHtml += `</div></div>`; 
             bayHtml += colLabels;
@@ -1010,7 +1081,7 @@
             attachCellListeners();
         }
 
-        // --- EXPORTAR PDF (MOTOR DE REFERÊNCIA FUNCIONAL COM HTML2PDF.JS) ---
+        // --- EXPORTAR PDF (USANDO A REFERÊNCIA QUE FUNCIONOU PERFEITA COM HTML2PDF.JS) ---
         async function generateRealPdf() {
             const loadingOverlay = document.getElementById('pdfLoadingOverlay');
             const printArea = document.getElementById('printArea');
@@ -1029,12 +1100,10 @@
             
             printArea.innerHTML = fullHtml;
 
-            // Essa é a exata lógica de exibição do código de referência que funcionava:
             headerEl.style.display = 'none';
             mainEl.style.display = 'none';
             printArea.style.display = 'block';
 
-            // Aguarda o navegador desenhar tudo na tela
             await new Promise(r => setTimeout(r, 500));
 
             const opt = {
@@ -1051,7 +1120,6 @@
                 alert("Houve um erro ao gerar o PDF. " + e);
             }
 
-            // Restaura
             printArea.style.display = 'none';
             printArea.innerHTML = ''; 
             headerEl.style.display = 'flex';
