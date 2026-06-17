@@ -23,6 +23,7 @@
             --port-ve: #ffa600; 
             --port-tr: #800080;
             --port-empty: #ffffff; 
+            --port-blocked: #ffffff;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; user-select: none; }
@@ -133,9 +134,10 @@
         .btn-filter { flex: 1; background: #34495e; color: white; border: none; padding: 8px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px;}
         .btn-filter.active { background: #f39c12; }
 
-        /* PAINEL DE EXPANSÃO DA GRADE */
+        /* PAINEL DE EXPANSÃO DA GRADE (AGORA ISOLADO POR BAY) */
         .grid-edit-panel { background: #ffebee; border: 1px solid #ffcaca; border-radius: 6px; padding: 12px; margin-bottom: 15px; display: none; }
         .grid-edit-panel h4 { margin: 0 0 10px 0; color: #c9302c; font-size: 13px; text-align: center; }
+        .grid-edit-select { width: 100%; padding: 6px; font-weight: bold; margin-bottom: 10px; border-radius: 4px; border: 1px solid #ccc; }
         .grid-edit-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .grid-edit-row span { font-size: 11px; font-weight: bold; color: #333; }
         .grid-edit-btns button { background: white; border: 1px solid #ccc; border-radius: 4px; padding: 2px 10px; cursor: pointer; font-weight: bold; font-size: 14px; }
@@ -191,28 +193,25 @@
         .bay-grid-flex { display: flex; align-items: center; }
 
         .axis-row { display: flex; margin-bottom: 0px; }
-        
-        /* Alinhamento Perfeito das Colunas: 24px (width do row-label) + 4px (margin do row-label) = 28px */
+        /* 28px alinha perfeitamente com os 24px de label + 4px de margem */
         .axis-col-labels { display: flex; margin-left: 28px; margin-bottom: 4px; margin-top: 4px;}
-        
-        .axis-label { width: var(--cell-size); text-align: center; font-size: 11px; font-weight: bold; color: #666; }
-        .row-label { width: 24px; display: flex; align-items: center; justify-content: flex-end; margin-right: 4px; font-size: 11px; font-weight: bold; color: #666; }
+        .axis-label { width: var(--cell-size); text-align: center; font-size: 11px; font-weight: bold; color: #666; box-sizing: border-box; }
+        .row-label { width: 24px; display: flex; align-items: center; justify-content: flex-end; margin-right: 4px; font-size: 11px; font-weight: bold; color: #666; box-sizing: border-box; }
         .deck-separator { width: 100%; height: 6px; background-color: #111; margin: 6px 0; border-radius: 2px;}
         
         .grid-row { display: flex; }
         .cell {
             width: var(--cell-size); height: var(--cell-size); border: 1px solid var(--cell-border);
             background-color: var(--port-empty); position: relative; cursor: pointer; display: flex;
-            align-items: center; justify-content: center; transition: 0.1s;
+            align-items: center; justify-content: center; transition: 0.1s; box-sizing: border-box;
         }
         .cell:hover { opacity: 0.8; border: 2px solid #000; z-index: 50;}
         .cell.hidden { visibility: hidden; border: none; pointer-events: none; }
         
-        /* Efeitos visuais do Modo de Edição */
         .edit-mode-active .cell { cursor: cell; pointer-events: auto !important;}
         .edit-mode-active .cell.hidden { visibility: visible; background-color: #eee; border: 1px dashed #aaa; opacity: 0.6; }
         
-        /* Efeito de campo editável nos Tiers e Rolls */
+        /* Destaque visual suave para campos editáveis */
         .edit-mode-active .axis-label, .edit-mode-active .row-label {
             background-color: #fff9c4; border: 1px dashed #f57f17; border-radius: 3px; cursor: text;
         }
@@ -231,15 +230,15 @@
         .layer.base-tank::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #111; }
         .layer.base-tank::after { content: 'T'; position: absolute; top: 2px; right: 3px; font-size: 8px; font-weight: bold; color: #111; }
         
-        /* O "X" DE 40 PÉS: Fundo branco suave cruzado, implementado como texto limpo e legível em PDF */
-        .layer.base-blocked40 { background-color: #ffffff !important; border: 1px solid #111; }
+        /* O "X" DE 40 PÉS (Fundo branco / X centralizado renderizável e suave) */
+        .layer.base-blocked40 { background-color: var(--port-blocked) !important; border: 1px solid #111; }
         .layer.base-blocked40::before { 
             content: 'X'; 
             position: absolute; 
             top: 50%; left: 50%; 
             transform: translate(-50%, -50%); 
-            font-size: 26px; 
-            font-weight: normal; 
+            font-size: 24px; 
+            font-weight: 300; /* Linha mais fina e suave */
             font-family: 'Segoe UI', Arial, sans-serif;
             color: #666; 
             z-index: 30; 
@@ -267,8 +266,8 @@
         }
 
         .pdf-page {
-            width: 290mm; /* Quase uma folha A4 completa na largura */
-            height: 195mm; /* Protege a margem inferior para não quebrar a página */
+            width: 297mm;
+            height: 210mm;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -277,7 +276,6 @@
             box-sizing: border-box;
             page-break-after: always;
             overflow: hidden;
-            margin: 0 auto;
         }
 
         /* Ajustes específicos para a folha renderizada no PDF */
@@ -290,22 +288,21 @@
 </head>
 <body>
 
-    <!-- OVERLAY DE LOADING -->
     <div id="pdfLoadingOverlay">
         <div class="spinner"></div>
         <h2>Processando Dados...</h2>
         <p>Isso pode levar alguns segundos. Não feche a página.</p>
     </div>
 
-    <!-- MODAL DE BOAS VINDAS -->
     <div id="welcomeModal" class="modal-overlay">
         <div class="modal-content">
             <h2>🚢 Stowage Plan Pro - Bem-vindo</h2>
             <ul>
                 <li><strong style="color: #d9534f;">MUDE AS CORES (OBRIGATÓRIO):</strong> Vá na aba "1. Lista de Carga", logo abaixo, e altere a paleta de cores dos portos clicando nas caixas de cor.</li>
                 <li><strong>Salvamento Automático:</strong> Os seus dados são salvos localmente. Tudo o que você alocar fica gravado mesmo se fechar o navegador.</li>
-                <li><strong>Edição de Grade:</strong> Clicando em "Editar Casco" você pode expandir as colunas e linhas do navio. Além disso, você pode <strong>clicar no nome dos Tiers e Rolls</strong> para renomeá-los livremente.</li>
-                <li><strong>Preenchimento Rápido (Lotes):</strong> Clique na primeira célula, segure <strong>SHIFT</strong> e clique na última para preencher linhas inteiras.</li>
+                <li><strong>Edição de Grade Individual:</strong> Clicando em "Editar Casco" você pode expandir as colunas e linhas da Bay que você selecionar. Além disso, você pode <strong>clicar no nome dos Tiers e Rolls no próprio desenho</strong> para renomeá-los.</li>
+                <li><strong>Preenchimento Rápido (Lotes):</strong> Clique na primeira célula, segure <strong>SHIFT</strong> e clique na última para preencher blocos inteiros.</li>
+                <li><strong>Exportar PDF:</strong> O sistema isola apenas os desenhos e gera um arquivo A4 Paisagem (Landscape) real sem cortes.</li>
             </ul>
             <button id="closeModalBtn" class="btn-start">Entendido, vamos começar!</button>
         </div>
@@ -326,7 +323,6 @@
     </header>
 
     <main>
-        <!-- ================= TELA 1: LISTA DE CARGA (INPUT) ================= -->
         <section id="cargoView">
             <div class="cargo-header">
                 <h3 style="margin-bottom: 5px;">Tabela de Contêineres (Padrão TTM 2026 Carregado)</h3>
@@ -356,8 +352,7 @@
                         </tr>
                     </thead>
                     <tbody id="cargoTbody">
-                        <!-- Preenchido via JS -->
-                    </tbody>
+                        </tbody>
                 </table>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <button class="btn-add" id="addCargoRowBtn">+ Adicionar Linha</button>
@@ -366,14 +361,14 @@
             </div>
         </section>
 
-        <!-- ================= TELA 2: PLANO MANUAL & VISÃO ================= -->
         <section id="manualView">
             <aside class="sidebar">
                 
-                <!-- PAINEL DE EXPANSÃO DA GRADE (SÓ APARECE NO MODO EDIÇÃO) -->
                 <div id="gridEditPanel" class="grid-edit-panel">
-                    <h4>⚙️ Estrutura Global do Grid</h4>
-                    <p style="font-size: 11px; text-align: center; color: #666; margin-bottom: 10px;">Clique nos números das linhas ou colunas na planta para renomeá-los manualmente.</p>
+                    <h4>⚙️ Expandir Grade da Bay</h4>
+                    <select id="editGridBaySelect" class="grid-edit-select"></select>
+                    <p style="font-size: 11px; text-align: center; color: #666; margin-bottom: 10px;">Clique diretamente nos números do eixo no desenho para renomear.</p>
+                    
                     <div class="grid-edit-row">
                         <span>Colunas (Rolls)</span>
                         <div class="grid-edit-btns">
@@ -413,28 +408,24 @@
                         <button class="btn-deselect" id="btnDeselect">Desmarcar</button>
                     </div>
                     <div id="inventoryList">
-                        <!-- Gerado dinamicamente -->
-                    </div>
+                        </div>
                 </div>
             </aside>
 
             <section class="canvas-area" id="canvasArea">
                 <div id="pairContainer">
-                    <!-- Gerado dinamicamente via JS -->
-                </div>
+                    </div>
             </section>
         </section>
     </main>
 
-    <!-- AREA OCULTA PARA GERAÇÃO DA IMAGEM PDF -->
     <div id="printArea"></div>
 
     <script>
         // --- 1. DEFINIÇÕES DA ESTRUTURA E TOPOLOGIA ---
-        let COLS = ['12','10','08','06','04','02','00','01','03','05','07','09','11'];
-        let ROWS_ABOVE = ['92','90','88','86','84','82'];
-        let ROWS_BELOW = ['16','14','12','10','08','06','04','02'];
-        let ALL_ROWS = [...ROWS_ABOVE, ...ROWS_BELOW]; 
+        const COLS_DEFAULT = ['12','10','08','06','04','02','00','01','03','05','07','09','11'];
+        const ROWS_ABOVE_DEFAULT = ['92','90','88','86','84','82'];
+        const ROWS_BELOW_DEFAULT = ['16','14','12','10','08','06','04','02'];
         
         const BAY_PAIRS = [
             ['01','03'], ['05','07'], ['09','11'], ['13','15'],
@@ -446,6 +437,7 @@
         let shipTopology = {}; 
         let savedShip = {};    
         let currentPairIdx = 0;
+        let bayGrids = {}; // Armazena a configuração de eixos independente por Bay
         
         let lastClickedCell = null; 
         let isShiftActionFill = true; 
@@ -520,9 +512,7 @@
                 shipTopology,
                 savedShip,
                 globalInventory,
-                COLS,
-                ROWS_ABOVE,
-                ROWS_BELOW
+                bayGrids
             };
             localStorage.setItem('stowagePlanData', JSON.stringify(dataToSave));
         }
@@ -535,10 +525,17 @@
                     shipTopology = parsed.shipTopology || {};
                     savedShip = parsed.savedShip || {};
                     globalInventory = parsed.globalInventory || [];
-                    COLS = parsed.COLS || COLS;
-                    ROWS_ABOVE = parsed.ROWS_ABOVE || ROWS_ABOVE;
-                    ROWS_BELOW = parsed.ROWS_BELOW || ROWS_BELOW;
-                    ALL_ROWS = [...ROWS_ABOVE, ...ROWS_BELOW];
+                    
+                    if (parsed.bayGrids) {
+                        bayGrids = parsed.bayGrids;
+                    } else {
+                        // Migração de versões antigas sem grid individual
+                        BAY_PAIRS.forEach(pair => {
+                            pair.forEach(b => {
+                                bayGrids[b] = { cols: [...COLS_DEFAULT], rowsAbove: [...ROWS_ABOVE_DEFAULT], rowsBelow: [...ROWS_BELOW_DEFAULT] };
+                            });
+                        });
+                    }
                     return true;
                 } catch(e) {
                     console.error("Erro ao carregar dados do LocalStorage", e);
@@ -558,8 +555,8 @@
         // --- 3. INICIALIZAÇÃO DA TOPOLOGIA ---
         function isCellHiddenDefault(bayId, row, col) {
             const b = parseInt(bayId); 
-            const rIdxA = ROWS_ABOVE.indexOf(row);
-            const rIdxB = ROWS_BELOW.indexOf(row);
+            const rIdxA = ROWS_ABOVE_DEFAULT.indexOf(row);
+            const rIdxB = ROWS_BELOW_DEFAULT.indexOf(row);
             
             if (col === '00' && rIdxB !== -1) return true;
 
@@ -605,117 +602,117 @@
             return false;
         }
 
-        // --- SISTEMA DE RENOMEAÇÃO CUSTOMIZADA DE TIERS E ROLLS ---
-        function renameAxis(type, oldVal, el) {
-            let newVal = el.innerText.trim();
+        function renameAxis(bayId, type, oldVal, el) {
+            let newVal = el.innerText.replace(/[\n\r]/g, '').trim();
             if (!newVal || newVal === oldVal) {
                 el.innerText = oldVal;
                 return;
             }
 
-            // Atualiza as chaves nos Arrays Globais
+            let grid = bayGrids[bayId];
             if (type === 'col') {
-                let idx = COLS.indexOf(oldVal);
-                if (idx !== -1) COLS[idx] = newVal;
+                let idx = grid.cols.indexOf(oldVal);
+                if (idx !== -1) grid.cols[idx] = newVal;
             } else if (type === 'row-above') {
-                let idx = ROWS_ABOVE.indexOf(oldVal);
-                if (idx !== -1) ROWS_ABOVE[idx] = newVal;
+                let idx = grid.rowsAbove.indexOf(oldVal);
+                if (idx !== -1) grid.rowsAbove[idx] = newVal;
             } else if (type === 'row-below') {
-                let idx = ROWS_BELOW.indexOf(oldVal);
-                if (idx !== -1) ROWS_BELOW[idx] = newVal;
+                let idx = grid.rowsBelow.indexOf(oldVal);
+                if (idx !== -1) grid.rowsBelow[idx] = newVal;
             }
-            ALL_ROWS = [...ROWS_ABOVE, ...ROWS_BELOW];
 
-            // Reescreve o dicionário das Plantas migrando os dados da numeração antiga para a nova
             let newTopology = {};
             let newSavedShip = {};
-
-            BAY_PAIRS.forEach(pair => {
-                pair.forEach(b => {
-                    newTopology[b] = {};
-                    newSavedShip[b] = {};
-                    
-                    Object.keys(shipTopology[b]).forEach(coord => {
-                        let [r, c] = coord.split('-');
-                        let newR = (type.includes('row') && r === oldVal) ? newVal : r;
-                        let newC = (type === 'col' && c === oldVal) ? newVal : c;
-                        newTopology[b][`${newR}-${newC}`] = shipTopology[b][coord];
-                    });
-
-                    Object.keys(savedShip[b]).forEach(coord => {
-                        let [r, c] = coord.split('-');
-                        let newR = (type.includes('row') && r === oldVal) ? newVal : r;
-                        let newC = (type === 'col' && c === oldVal) ? newVal : c;
-                        newSavedShip[b][`${newR}-${newC}`] = savedShip[b][coord];
-                    });
-                });
+            
+            Object.keys(shipTopology[bayId]).forEach(coord => {
+                let [r, c] = coord.split('-');
+                let newR = (type.includes('row') && r === oldVal) ? newVal : r;
+                let newC = (type === 'col' && c === oldVal) ? newVal : c;
+                newTopology[`${newR}-${newC}`] = shipTopology[bayId][coord];
             });
 
-            shipTopology = newTopology;
-            savedShip = newSavedShip;
+            Object.keys(savedShip[bayId]).forEach(coord => {
+                let [r, c] = coord.split('-');
+                let newR = (type.includes('row') && r === oldVal) ? newVal : r;
+                let newC = (type === 'col' && c === oldVal) ? newVal : c;
+                newSavedShip[`${newR}-${newC}`] = savedShip[bayId][coord];
+            });
+
+            shipTopology[bayId] = newTopology;
+            savedShip[bayId] = newSavedShip;
+            
             persistData();
             renderBayPairsUI();
         }
 
-        function updateGlobalArrays() {
-            ALL_ROWS = [...ROWS_ABOVE, ...ROWS_BELOW];
-            BAY_PAIRS.forEach(pair => {
-                pair.forEach(b => {
-                    ALL_ROWS.forEach(r => {
-                        COLS.forEach(c => {
-                            let coord = `${r}-${c}`;
-                            if (shipTopology[b][coord] === undefined) {
-                                shipTopology[b][coord] = false; 
-                            }
-                        });
-                    });
-                });
-            });
-            persistData();
-        }
-
         function setupGridEditControls() {
             document.getElementById('btnAddRoll').addEventListener('click', () => {
-                let evens = COLS.filter(c => parseInt(c) % 2 === 0 && c !== '00').map(c => parseInt(c));
+                let bayId = document.getElementById('editGridBaySelect').value;
+                let grid = bayGrids[bayId];
+                let evens = grid.cols.filter(c => parseInt(c) % 2 === 0 && c !== '00').map(c => parseInt(c));
                 let nextEven = evens.length > 0 ? Math.max(...evens) + 2 : 2;
-                let odds = COLS.filter(c => parseInt(c) % 2 !== 0).map(c => parseInt(c));
+                let odds = grid.cols.filter(c => parseInt(c) % 2 !== 0).map(c => parseInt(c));
                 let nextOdd = odds.length > 0 ? Math.max(...odds) + 2 : 1;
                 
-                COLS.unshift(String(nextEven).padStart(2, '0'));
-                COLS.push(String(nextOdd).padStart(2, '0'));
-                updateGlobalArrays(); renderBayPairsUI();
+                grid.cols.unshift(String(nextEven).padStart(2, '0'));
+                grid.cols.push(String(nextOdd).padStart(2, '0'));
+                
+                let all_rows = [...grid.rowsAbove, ...grid.rowsBelow];
+                all_rows.forEach(r => {
+                    shipTopology[bayId][`${r}-${String(nextEven).padStart(2,'0')}`] = false;
+                    shipTopology[bayId][`${r}-${String(nextOdd).padStart(2,'0')}`] = false;
+                });
+                persistData(); renderBayPairsUI();
             });
 
             document.getElementById('btnRemRoll').addEventListener('click', () => {
-                if(COLS.length <= 1) return;
-                COLS.shift(); COLS.pop();
-                updateGlobalArrays(); renderBayPairsUI();
+                let bayId = document.getElementById('editGridBaySelect').value;
+                let grid = bayGrids[bayId];
+                if(grid.cols.length <= 1) return;
+                grid.cols.shift(); grid.cols.pop();
+                persistData(); renderBayPairsUI();
             });
 
             document.getElementById('btnAddTierAbove').addEventListener('click', () => {
-                let max = ROWS_ABOVE.length > 0 ? Math.max(...ROWS_ABOVE.map(r => parseInt(r))) : 80;
+                let bayId = document.getElementById('editGridBaySelect').value;
+                let grid = bayGrids[bayId];
+                let max = grid.rowsAbove.length > 0 ? Math.max(...grid.rowsAbove.map(r => parseInt(r))) : 80;
                 let next = max + 2;
-                ROWS_ABOVE.unshift(String(next).padStart(2, '0'));
-                updateGlobalArrays(); renderBayPairsUI();
+                grid.rowsAbove.unshift(String(next).padStart(2, '0'));
+                
+                grid.cols.forEach(c => {
+                    shipTopology[bayId][`${String(next).padStart(2, '0')}-${c}`] = false;
+                });
+                persistData(); renderBayPairsUI();
             });
 
             document.getElementById('btnRemTierAbove').addEventListener('click', () => {
-                if(ROWS_ABOVE.length === 0) return;
-                ROWS_ABOVE.shift();
-                updateGlobalArrays(); renderBayPairsUI();
+                let bayId = document.getElementById('editGridBaySelect').value;
+                let grid = bayGrids[bayId];
+                if(grid.rowsAbove.length === 0) return;
+                grid.rowsAbove.shift();
+                persistData(); renderBayPairsUI();
             });
 
             document.getElementById('btnAddTierBelow').addEventListener('click', () => {
-                let max = ROWS_BELOW.length > 0 ? Math.max(...ROWS_BELOW.map(r => parseInt(r))) : 0;
+                let bayId = document.getElementById('editGridBaySelect').value;
+                let grid = bayGrids[bayId];
+                let max = grid.rowsBelow.length > 0 ? Math.max(...grid.rowsBelow.map(r => parseInt(r))) : 0;
                 let next = max + 2;
-                ROWS_BELOW.unshift(String(next).padStart(2, '0'));
-                updateGlobalArrays(); renderBayPairsUI();
+                grid.rowsBelow.unshift(String(next).padStart(2, '0'));
+                
+                grid.cols.forEach(c => {
+                    shipTopology[bayId][`${String(next).padStart(2, '0')}-${c}`] = false;
+                });
+                persistData(); renderBayPairsUI();
             });
 
             document.getElementById('btnRemTierBelow').addEventListener('click', () => {
-                if(ROWS_BELOW.length === 0) return;
-                ROWS_BELOW.shift(); 
-                updateGlobalArrays(); renderBayPairsUI();
+                let bayId = document.getElementById('editGridBaySelect').value;
+                let grid = bayGrids[bayId];
+                if(grid.rowsBelow.length === 0) return;
+                grid.rowsBelow.shift(); 
+                persistData(); renderBayPairsUI();
             });
         }
 
@@ -728,10 +725,12 @@
             if (!loadPersistedData()) {
                 BAY_PAIRS.forEach(pair => {
                     pair.forEach(b => {
+                        bayGrids[b] = { cols: [...COLS_DEFAULT], rowsAbove: [...ROWS_ABOVE_DEFAULT], rowsBelow: [...ROWS_BELOW_DEFAULT] };
                         shipTopology[b] = {};
                         savedShip[b] = {};
-                        ALL_ROWS.forEach(r => {
-                            COLS.forEach(c => {
+                        let allR = [...ROWS_ABOVE_DEFAULT, ...ROWS_BELOW_DEFAULT];
+                        allR.forEach(r => {
+                            COLS_DEFAULT.forEach(c => {
                                 shipTopology[b][`${r}-${c}`] = isCellHiddenDefault(b, r, c);
                             });
                         });
@@ -781,7 +780,7 @@
                 document.getElementById('canvasArea').classList.toggle('edit-mode-active');
                 document.getElementById('gridEditPanel').style.display = currentState.editMode ? 'block' : 'none';
                 lastClickedCell = null;
-                renderBayPairsUI(); // Re-renderiza para ativar os atributos contenteditable
+                renderBayPairsUI(); // Ativa as lógicas visuais de edição
             });
 
             document.getElementById('btnFilterIMO').addEventListener('click', function() {
@@ -1010,6 +1009,7 @@
         function generateBayGridHtml(bayId, isPrint = false) {
             let savedData = savedShip[bayId] || {};
             let isEditable = currentState.editMode && !isPrint;
+            let bayGrid = bayGrids[bayId];
             
             let bayHtml = `
             <div class="bay-container-wrapper" style="display: flex; flex-direction: column; align-items: center;">
@@ -1019,7 +1019,9 @@
             `;
             
             let colLabels = '<div class="axis-col-labels">';
-            COLS.forEach(c => colLabels += `<div class="axis-label" contenteditable="${isEditable ? 'true' : 'false'}" onblur="renameAxis('col', '${c}', this)">${c}</div>`);
+            bayGrid.cols.forEach(c => {
+                colLabels += `<div class="axis-label" contenteditable="${isEditable ? 'true' : 'false'}" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" onblur="renameAxis('${bayId}', 'col', '${c}', this)">${c}</div>`;
+            });
             colLabels += '</div>';
             
             bayHtml += colLabels;
@@ -1029,8 +1031,8 @@
             const drawRows = (rowsArray, typeStr) => {
                 let section = '';
                 rowsArray.forEach(row => {
-                    let rowHtml = `<div class="axis-row"><div class="row-label" contenteditable="${isEditable ? 'true' : 'false'}" onblur="renameAxis('${typeStr}', '${row}', this)">${row}</div><div class="grid-row">`;
-                    COLS.forEach(col => {
+                    let rowHtml = `<div class="axis-row"><div class="row-label" contenteditable="${isEditable ? 'true' : 'false'}" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" onblur="renameAxis('${bayId}', '${typeStr}', '${row}', this)">${row}</div><div class="grid-row">`;
+                    bayGrid.cols.forEach(col => {
                         let coord = `${row}-${col}`;
                         let isHidden = shipTopology[bayId][coord] ? 'hidden' : '';
                         let cellData = savedData[coord];
@@ -1063,9 +1065,9 @@
                 return section;
             };
 
-            bayHtml += drawRows(ROWS_ABOVE, 'row-above');
+            bayHtml += drawRows(bayGrid.rowsAbove, 'row-above');
             bayHtml += `<div class="deck-separator"></div>`;
-            bayHtml += drawRows(ROWS_BELOW, 'row-below');
+            bayHtml += drawRows(bayGrid.rowsBelow, 'row-below');
             
             bayHtml += `</div></div>`; 
             bayHtml += colLabels;
@@ -1077,11 +1079,20 @@
         function renderBayPairsUI() {
             const pair = BAY_PAIRS[currentPairIdx];
             const container = document.getElementById('pairContainer');
+            
+            // Atualiza o seletor de qual bay editar dinamicamente
+            const editSelect = document.getElementById('editGridBaySelect');
+            if(editSelect) {
+                const currentEditVal = editSelect.value;
+                editSelect.innerHTML = `<option value="${pair[0]}">Editar Bay ${pair[0]}</option><option value="${pair[1]}">Editar Bay ${pair[1]}</option>`;
+                if (pair.includes(currentEditVal)) editSelect.value = currentEditVal;
+            }
+
             container.innerHTML = generatePairHtml(pair[0], pair[1], false);
             attachCellListeners();
         }
 
-        // --- EXPORTAR PDF (USANDO A REFERÊNCIA QUE FUNCIONOU PERFEITA COM HTML2PDF.JS) ---
+        // --- EXPORTAR PDF (MOTOR HTML2PDF DA REFERÊNCIA) ---
         async function generateRealPdf() {
             const loadingOverlay = document.getElementById('pdfLoadingOverlay');
             const printArea = document.getElementById('printArea');
@@ -1209,8 +1220,10 @@
                     let cStr = this.getAttribute('data-col');
                     let bayId = this.getAttribute('data-bay');
                     
-                    let rIdx = ALL_ROWS.indexOf(rStr);
-                    let cIdx = COLS.indexOf(cStr);
+                    let grid = bayGrids[bayId];
+                    let all_rows = [...grid.rowsAbove, ...grid.rowsBelow];
+                    let rIdx = all_rows.indexOf(rStr);
+                    let cIdx = grid.cols.indexOf(cStr);
 
                     if (e.shiftKey && activeInvId !== null && isShiftActionFill && !currentState.editMode) {
                         let inv = globalInventory.find(i => i.id === activeInvId);
@@ -1225,12 +1238,12 @@
                         
                         for(let r = minR; r <= maxR; r++) {
                             for(let c = minC; c <= maxC; c++) {
-                                let targetCoord = `${ALL_ROWS[r]}-${COLS[c]}`;
+                                let targetCoord = `${all_rows[r]}-${grid.cols[c]}`;
                                 if(currentState.editMode) {
                                      shipTopology[bayId][targetCoord] = isShiftActionFill;
                                 } else {
-                                     if(isShiftActionFill) placeContainer(bayId, ALL_ROWS[r], COLS[c], false);
-                                     else removeContainer(bayId, ALL_ROWS[r], COLS[c]);
+                                     if(isShiftActionFill) placeContainer(bayId, all_rows[r], grid.cols[c], false);
+                                     else removeContainer(bayId, all_rows[r], grid.cols[c]);
                                 }
                             }
                         }
