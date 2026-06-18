@@ -18,8 +18,14 @@
             --cell-size: 26px; 
             --cell-border: #222;
             --primary: #1a2a3a;
-            --port-lb: #e60000; --port-lh: #0073e6; --port-ba: #8cd962;
-            --port-na: #ffff4d; --port-ve: #ffa600; --port-tr: #800080;
+            
+            /* Cores Dinâmicas dos Portos */
+            --port-lb: #e60000; 
+            --port-lh: #0073e6; 
+            --port-ba: #8cd962;
+            --port-na: #ffff4d; 
+            --port-ve: #ffa600; 
+            --port-tr: #800080;
             --port-empty: #ffffff; 
         }
 
@@ -37,7 +43,16 @@
         }
 
         /* ================= MODAL INICIAL E LOADING ================= */
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: flex; justify-content: center; align-items: center; }
+        .modal-overlay { 
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+            background: rgba(0,0,0,0.7); z-index: 2000; 
+            display: none; /* Escondido por padrão, acionado via classe active */
+            justify-content: center; align-items: center; 
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+
         .modal-content { background: white; padding: 35px; border-radius: 8px; max-width: 650px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border-top: 6px solid var(--primary); }
         .modal-content h2 { color: var(--primary); margin-bottom: 20px; font-size: 24px; }
         .modal-content ul { line-height: 1.7; margin-left: 20px; font-size: 15px; color: #333; margin-bottom: 25px;}
@@ -145,6 +160,8 @@
         .layer.base-tank::after { content: 'T'; position: absolute; top: 2px; right: 3px; font-size: 8px; font-weight: bold; color: #111; }
         .layer.base-blocked40 { background-color: #ffffff !important; border: 1px solid #111; }
         .layer.base-blocked40::before { content: 'X'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 26px; font-weight: normal; font-family: 'Segoe UI', Arial, sans-serif; color: #666; z-index: 30; }
+        .layer.base-blocked_twin { background-color: rgba(0,0,0,0.1) !important; border: 1px solid #111; }
+        .layer.base-blocked_twin::before { content: '⇄'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 16px; font-weight: bold; color: #444; z-index: 30; }
         .layer.base-flatrack::before { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 25%; background: linear-gradient(to bottom right, transparent 48%, #111 50%) left / 40% 100% no-repeat, linear-gradient(#111, #111) right / 60% 100% no-repeat; }
         .layer.mod-oh { z-index: 25; }
         .layer.mod-oh::after { content: ''; position: absolute; top: -6px; left: 10%; right: 10%; height: 6px; border: 1.5px solid #111; border-bottom: none; border-radius: 20px 20px 0 0; }
@@ -185,7 +202,7 @@
                 <li><strong>Espelhos Físicos (Gêmeas):</strong> O que você colocar em uma Bay (ex: 33 IMO) aparecerá visualmente na mesma hora na baia gêmea correspondente (33 Standard). O mesmo vale para a deleção e edição do casco.</li>
                 <li><strong>Proibido 20' sobre 40':</strong> A trava física garante que contêineres curtos não fiquem "sambando" sobre os pontos de encaixe de um longo.</li>
             </ul>
-            <button id="closeModalBtn" class="btn-start">Entendido, vamos começar!</button>
+            <button id="closeModalBtn" class="btn-start" onclick="document.getElementById('welcomeModal').classList.remove('active')">Entendido, vamos começar!</button>
         </div>
     </div>
 
@@ -273,13 +290,85 @@
         let shipTopology = {}, savedShip = {}, bayGrids = {}, globalInventory = [];
         let currentPairIdx = 0, lastClickedCell = null, isShiftActionFill = true, currentState = { editMode: false }, activeInvId = null;
 
-        // --- MÉTODOS DE SUPORTE (GÊMEAS FÍSICAS) ---
+        // --- MÉTODOS DE SUPORTE (GÊMEAS FÍSICAS E TOPOLOGIA) ---
         function getTwinBays(bay) {
             let base = bay.replace(' IMO', '').replace(' REEFER', '');
             let res = [base];
             if (bayGrids[`${base} IMO`]) res.push(`${base} IMO`);
             if (bayGrids[`${base} REEFER`]) res.push(`${base} REEFER`);
             return res; 
+        }
+
+        function isCellHiddenDefault(bayId, row, col) {
+            const b = parseInt(bayId); 
+            const rIdxA = ROWS_ABOVE_DEFAULT.indexOf(row);
+            const isAbove = rIdxA !== -1;
+            
+            if (b === 1 || b === 3) {
+                if (isAbove) {
+                    if (row !== '84' && row !== '82') return true;
+                    if (col === '12' || col === '11' || col === '00') return true;
+                    return false;
+                } else {
+                    if (col === '00' || col === '12' || col === '11' || col === '10' || col === '09' || col === '08' || col === '07') return true;
+                    if (row === '14' || row === '12') return false; 
+                    if (row === '10' || row === '08') {
+                        if (col === '06' || col === '05') return true;
+                        return false;
+                    }
+                    if (row === '06' || row === '04' || row === '02') {
+                        if (col === '06' || col === '05' || col === '04' || col === '03') return true;
+                        return false;
+                    }
+                    return true;
+                }
+            }
+            if (b === 5 || b === 7) {
+                if (isAbove) {
+                    if (row === '92' || row === '90') return true;
+                    return false;
+                } else {
+                    if (row === '02') return true;
+                    if (col === '12' || col === '11' || col === '10' || col === '09') return true;
+                    if (row === '14' || row === '12') return false; 
+                    if (col === '08' || col === '06' || col === '05' || col === '07') return true;
+                    return false;
+                }
+            }
+            if (b >= 9 && b <= 15) {
+                if (isAbove) {
+                    if (row === '92' || row === '90') return true;
+                    return false;
+                } else {
+                    if (col === '00' || col === '12' || col === '11') return true;
+                    return false;
+                }
+            }
+            if (b === 17 || b === 19) {
+                if (isAbove) {
+                    if (row === '92') return true;
+                    if ((row === '90' || row === '88' || row === '86') && col === '00') return true;
+                    return false;
+                } else {
+                    if (col === '00' || col === '12' || col === '11') return true;
+                    return false;
+                }
+            }
+            if ((b >= 21 && b <= 27) || b === 33 || b === 35) {
+                if (isAbove) {
+                    if (row === '92') return true;
+                    return false;
+                } else {
+                    if (col === '00' || col === '12' || col === '11') return true;
+                    return false;
+                }
+            }
+            if (b === 37 || b === 39) {
+                if (!isAbove) return true;
+                return false;
+            }
+            if (col === '00' && !isAbove) return true;
+            return false;
         }
 
         // --- 2. DADOS DA CARGA PADRÃO (VIAGEM 02 NB) ---
@@ -355,6 +444,21 @@
                     else if (!inv.pol) inv.pol = 'RG';
                 });
 
+                // Auto-cura de Topologia (Re-inicializa a função isCellHiddenDefault de forma segura)
+                BAY_PAIRS.forEach(pair => {
+                    pair.forEach(b => {
+                        if (!bayGrids[b] || !bayGrids[b].cols) {
+                            bayGrids[b] = { cols: [...COLS_DEFAULT], rowsAbove: [...ROWS_ABOVE_DEFAULT], rowsBelow: [...ROWS_BELOW_DEFAULT] };
+                        }
+                        if (!shipTopology[b]) {
+                            shipTopology[b] = {};
+                            let allR = [...bayGrids[b].rowsAbove, ...bayGrids[b].rowsBelow];
+                            allR.forEach(r => { bayGrids[b].cols.forEach(c => { shipTopology[b][`${r}-${c}`] = isCellHiddenDefault(b, r, c); }); });
+                        }
+                        if (!savedShip[b]) savedShip[b] = {};
+                    });
+                });
+
                 // Auto-sync de gêmeas legadas
                 Object.keys(savedShip).forEach(bay => {
                     let twins = getTwinBays(bay);
@@ -366,7 +470,7 @@
                 });
 
                 return true;
-            } catch(e) { return false; }
+            } catch(e) { console.error("Falha ao carregar save:", e); return false; }
         }
 
         // --- MÓDULO AUTO-STOW OTIMIZADO ---
@@ -606,7 +710,6 @@
         }
 
         function initApp() {
-            document.getElementById('closeModalBtn').addEventListener('click', () => document.getElementById('welcomeModal').style.display = 'none');
             document.getElementById('btnResetData').addEventListener('click', resetLocalData);
             if (!loadPersistedData()) {
                 BAY_PAIRS.forEach(pair => {
@@ -614,19 +717,7 @@
                         bayGrids[b] = { cols: [...COLS_DEFAULT], rowsAbove: [...ROWS_ABOVE_DEFAULT], rowsBelow: [...ROWS_BELOW_DEFAULT] };
                         shipTopology[b] = {}; savedShip[b] = {};
                         [...ROWS_ABOVE_DEFAULT, ...ROWS_BELOW_DEFAULT].forEach(r => {
-                            COLS_DEFAULT.forEach(c => {
-                                // Default Hull shape logic
-                                let h = false;
-                                let pb = parseInt(b); let isA = ROWS_ABOVE_DEFAULT.includes(r);
-                                if (pb===1||pb===3) { if(isA) { if(r!=='84'&&r!=='82') h=true; if(c==='12'||c==='11'||c==='00') h=true; } else { if(c==='00'||c==='12'||c==='11'||c==='10'||c==='09'||c==='08'||c==='07') h=true; else if(r==='14'||r==='12') h=false; else if(r==='10'||r==='08') { if(c==='06'||c==='05') h=true; } else if(r==='06'||r==='04'||r==='02') { if(c==='06'||c==='05'||c==='04'||c==='03') h=true; } else h=true; } }
-                                else if (pb===5||pb===7) { if(isA) { if(r==='92'||r==='90') h=true; } else { if(r==='02') h=true; else if(c==='12'||c==='11'||c==='10'||c==='09') h=true; else if(r==='14'||r==='12') h=false; else if(c==='08'||c==='06'||c==='05'||c==='07') h=true; } }
-                                else if (pb>=9&&pb<=15) { if(isA) { if(r==='92'||r==='90') h=true; } else { if(c==='00'||c==='12'||c==='11') h=true; } }
-                                else if (pb===17||pb===19) { if(isA) { if(r==='92') h=true; else if((r==='90'||r==='88'||r==='86')&&c==='00') h=true; } else { if(c==='00'||c==='12'||c==='11') h=true; } }
-                                else if ((pb>=21&&pb<=27)||pb===33||pb===35) { if(isA) { if(r==='92') h=true; } else { if(c==='00'||c==='12'||c==='11') h=true; } }
-                                else if (pb===37||pb===39) { if(!isA) h=true; }
-                                else if (c==='00'&&!isA) h=true;
-                                shipTopology[b][`${r}-${c}`] = h;
-                            });
+                            COLS_DEFAULT.forEach(c => { shipTopology[b][`${r}-${c}`] = isCellHiddenDefault(b, r, c); });
                         });
                     });
                 });
@@ -652,7 +743,11 @@
             document.getElementById('exportPdfBtn').addEventListener('click', generateRealPdf);
             
             setupGridEditControls(); setupJsonExportImport(); setupAutoStow(); syncInventoryFromTable();
-            if(localStorage.getItem('stowagePlanData') === null) document.getElementById('welcomeModal').style.display = 'flex';
+            
+            // Garantia de abertura de modal sem travar
+            if(localStorage.getItem('stowagePlanData') === null) {
+                document.getElementById('welcomeModal').classList.add('active');
+            }
         }
 
         function switchTab(tab) {
@@ -777,6 +872,8 @@
                         if (cellData) {
                             if (cellData.base === 'blocked40') {
                                 contentHtml = `<div class="layer base-blocked40"></div>`;
+                            } else if (cellData.base === 'blocked_twin') {
+                                contentHtml = `<div class="layer base-blocked_twin" title="Ocupado na planta equivalente"></div>`;
                             } else if (cellData.base === 'blocked_ow' || cellData.base === 'blocked_ot') {
                                 bgColorStyle = isPrint ? 'background-color: #ffffff !important;' : 'background-color: var(--port-empty);';
                             } else if (cellData.invId !== undefined) {
@@ -984,6 +1081,7 @@
                     if (!canPlaceContainer(inv, bayId, showAlert)) return;
                     let is40 = (inv.size === '40' || inv.size === '45' || inv.mods.includes('ol'));
 
+                    // Check Manual: Proibido 2x20' sobre 40'
                     if (!is40) {
                         let grid = bayGrids[bayId];
                         let all = [...grid.rowsBelow.slice().reverse(), ...grid.rowsAbove.slice().reverse()];
