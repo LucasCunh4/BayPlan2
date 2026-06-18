@@ -107,7 +107,8 @@
         .attr-checks label { display: flex; align-items: center; font-size: 11px; cursor: pointer; background: #f9f9f9; padding: 4px 6px; border: 1px solid #eee; border-radius: 4px;}
         .attr-checks label:hover { background: #eef5ff; border-color: var(--primary); }
         .attr-checks input { width: auto; margin-right: 4px; }
-        .btn-add { background: #5cb85c; color: white; border: none; padding: 8px 16px; cursor: pointer; border-radius: 4px; font-weight: bold; margin-right: 10px; }
+        
+        .btn-add { background: #5cb85c; color: white; border: none; padding: 8px 16px; cursor: pointer; border-radius: 4px; font-weight: bold; }
         .btn-clear-row { background: #f8f9fa; border: 1px dashed #d9534f; color: #d9534f; cursor: pointer; padding: 6px 10px; font-weight: bold; border-radius: 4px;}
         .btn-clear-row:hover { background: #fee; }
         .btn-reset-data { background: #d9534f; color: white; border: none; padding: 8px 16px; cursor: pointer; border-radius: 4px; font-weight: bold; }
@@ -215,19 +216,16 @@
 
         .port-text { font-size: 11px; font-weight: bold; color: #000; position: relative; z-index: 20; pointer-events: none; text-shadow: 0px 0px 3px rgba(255,255,255,0.9); }
 
-        /* SÍMBOLOS CSS */
+        /* ================= SÍMBOLOS CSS ================= */
         .layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 5; }
         .layer.base-opentop { border-top: 4px solid #111; }
-        .layer.base-flatrack::before { content: ''; position: absolute; bottom: 0; right: 0; border-width: 0 0 10px 10px; border-style: solid; border-color: transparent transparent #111 transparent; }
         .layer.base-platform { border-bottom: 4px solid #111; }
-        .layer.base-oh40::before { content: 'X'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 16px; color: #111; font-weight: normal; font-family: sans-serif; z-index: 6;}
-        .layer.base-oh45::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); border-width: 8px 8px 0 8px; border-style: solid; border-color: #111 transparent transparent transparent; }
         .layer.base-imo::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(45deg); width: 12px; height: 12px; border: 1.5px solid #111; }
         .layer.base-livestock::after { content: 'LS'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 9px; font-weight: bold; color: #111; }
         .layer.base-tank::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #111; }
         .layer.base-tank::after { content: 'T'; position: absolute; top: 2px; right: 3px; font-size: 8px; font-weight: bold; color: #111; }
         
-        /* O "X" DE 40 PÉS: Fundo branco e o X centralizado usando texto por segurança no PDF */
+        /* "X" DE 40 PÉS */
         .layer.base-blocked40 { background-color: #ffffff !important; border: 1px solid #111; }
         .layer.base-blocked40::before { 
             content: 'X'; 
@@ -241,12 +239,55 @@
             z-index: 30; 
         }
 
+        /* ====== ALTERAÇÕES NOVAS (FLAT RACK, OW, OH, OL) ====== */
+
+        /* Flat Rack Base: Base grossa na direita, chanfrada na esquerda */
+        .layer.base-flatrack::before { 
+            content: ''; 
+            position: absolute; 
+            bottom: 0; left: 0; right: 0; height: 25%; 
+            background: linear-gradient(to bottom right, transparent 48%, #111 50%) left / 40% 100% no-repeat, 
+                        linear-gradient(#111, #111) right / 60% 100% no-repeat;
+        }
+
+        /* OH (Over Height): Semicírculo pra fora no topo */
+        .layer.mod-oh { z-index: 25; }
+        .layer.mod-oh::after { 
+            content: ''; 
+            position: absolute; 
+            top: -6px; left: 10%; right: 10%; height: 6px; 
+            border: 1.5px solid #111; border-bottom: none; border-radius: 20px 20px 0 0; 
+        }
+
+        /* OW (Over Width): Semicírculos pra fora nas laterais */
+        .layer.mod-ow { z-index: 25; }
+        .layer.mod-ow::before { 
+            content: ''; 
+            position: absolute; 
+            left: -6px; top: 10%; bottom: 10%; width: 6px; 
+            border: 1.5px solid #111; border-right: none; border-radius: 20px 0 0 20px; 
+        }
+        .layer.mod-ow::after { 
+            content: ''; 
+            position: absolute; 
+            right: -6px; top: 10%; bottom: 10%; width: 6px; 
+            border: 1.5px solid #111; border-left: none; border-radius: 0 20px 20px 0; 
+        }
+
+        /* OL (Over Length): Semicírculo voltado pra dentro no topo */
+        .layer.mod-ol { z-index: 25; }
+        .layer.mod-ol::after { 
+            content: ''; 
+            position: absolute; 
+            top: 0px; left: 10%; right: 10%; height: 6px; 
+            border: 1.5px solid #111; border-top: none; border-radius: 0 0 20px 20px; 
+        }
+
+        /* ======================================================= */
+
         .layer.mod-hc::before { content: ''; position: absolute; top: 0; left: 0; width: 8px; height: 8px; border-right: 1.5px solid #111; border-bottom: 1.5px solid #111; border-radius: 0 0 100% 0; }
-        .layer.mod-ow::before { content: ''; position: absolute; top: 12%; bottom: 12%; left: 1px; right: 1px; border-left: 1.5px solid #111; border-right: 1.5px solid #111; border-radius: 8px; }
-        .layer.mod-oh::after { content: ''; position: absolute; top: 1px; left: 12%; right: 12%; height: 6px; border-top: 1.5px solid #111; border-radius: 50% 50% 0 0; }
         .layer.mod-empty::after { content: 'E'; position: absolute; top: 2px; right: 3px; font-size: 8px; font-weight: bold; color: #111; }
         .layer.mod-reefer::after { content: 'R'; position: absolute; top: 2px; right: 3px; font-size: 8px; font-weight: bold; color: #111; }
-        .layer.mod-ol::after { content: 'OL'; position: absolute; bottom: 1px; left: 50%; transform: translateX(-50%); font-size: 8px; font-weight: bold; color: #111; }
         
         .layer.mod-imo5::after { content: '5'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 9px; font-weight: bold; color: #111; }
         .layer.mod-imo8::after { content: '8'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 9px; font-weight: bold; color: #111; }
@@ -285,22 +326,20 @@
 </head>
 <body>
 
-    <!-- OVERLAY DE LOADING -->
     <div id="pdfLoadingOverlay">
         <div class="spinner"></div>
         <h2>Processando Dados...</h2>
         <p>Isso pode levar alguns segundos. Não feche a página.</p>
     </div>
 
-    <!-- MODAL DE BOAS VINDAS -->
     <div id="welcomeModal" class="modal-overlay">
         <div class="modal-content">
             <h2>🚢 Stowage Plan Pro - Bem-vindo</h2>
             <ul>
                 <li><strong style="color: #d9534f;">MUDE AS CORES (OBRIGATÓRIO):</strong> Vá na aba "1. Lista de Carga", logo abaixo, e altere a paleta de cores dos portos clicando nas caixas de cor.</li>
                 <li><strong>Salvamento Automático:</strong> Os seus dados são salvos localmente. Tudo o que você alocar fica gravado mesmo se fechar o navegador.</li>
+                <li><strong>Exportar/Importar Arquivo:</strong> Você pode baixar e carregar arquivos JSON na aba Lista de Carga para não perder seu trabalho ou compartilhar seu plano.</li>
                 <li><strong>Edição de Grade Individual:</strong> Clicando em "Editar Casco" você pode expandir as colunas e linhas da Bay que você selecionar. Além disso, você pode <strong>clicar no nome dos Tiers e Rolls no próprio desenho</strong> para renomeá-los.</li>
-                <li><strong>Preenchimento Rápido (Lotes):</strong> Clique na primeira célula, segure <strong>SHIFT</strong> e clique na última para preencher blocos inteiros.</li>
                 <li><strong>Exportar PDF:</strong> O sistema isola apenas os desenhos e gera um arquivo A4 Paisagem (Landscape) real sem cortes.</li>
             </ul>
             <button id="closeModalBtn" class="btn-start">Entendido, vamos começar!</button>
@@ -322,7 +361,6 @@
     </header>
 
     <main>
-        <!-- ================= TELA 1: LISTA DE CARGA (INPUT) ================= -->
         <section id="cargoView">
             <div class="cargo-header">
                 <h3 style="margin-bottom: 5px;">Tabela de Contêineres (Padrão TTM 2026 Carregado)</h3>
@@ -352,27 +390,28 @@
                         </tr>
                     </thead>
                     <tbody id="cargoTbody">
-                        <!-- Preenchido via JS -->
-                    </tbody>
+                        </tbody>
                 </table>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <button class="btn-add" id="addCargoRowBtn">+ Adicionar Linha</button>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button class="btn-add" id="addCargoRowBtn">+ Adicionar Linha</button>
+                        <button class="btn-export" id="btnExportJson" style="padding: 8px 16px; border-radius: 4px; border: none; background: #3498db; color: white; font-weight: bold; cursor: pointer;">📥 Exportar JSON</button>
+                        <button class="btn-add" id="btnImportJson" style="background: #f39c12;">📂 Importar JSON</button>
+                        <input type="file" id="importJsonInput" accept=".json" style="display:none">
+                    </div>
                     <button class="btn-reset-data" id="btnResetData" title="Apaga todas as cargas salvas no navegador">⚠️ Resetar Dados LocalStorage</button>
                 </div>
             </div>
         </section>
 
-        <!-- ================= TELA 2: PLANO MANUAL & VISÃO ================= -->
         <section id="manualView">
             <aside class="sidebar">
                 
-                <!-- PAINEL DE EXPANSÃO DA GRADE (SÓ APARECE NO MODO EDIÇÃO) -->
                 <div id="gridEditPanel" class="grid-edit-panel">
                     <h4>⚙️ Expandir Grade da Bay</h4>
                     <select id="editGridBaySelect" class="grid-edit-select"></select>
                     <p style="font-size: 11px; text-align: center; color: #666; margin-bottom: 10px;">Clique diretamente nos números do eixo no desenho para renomear.</p>
                     
-                    <!-- Novo Botão para Adicionar/Remover Roll 00 -->
                     <div class="grid-edit-row">
                         <span>Centro (Roll 00)</span>
                         <div class="grid-edit-btns">
@@ -418,20 +457,17 @@
                         <button class="btn-deselect" id="btnDeselect">Desmarcar</button>
                     </div>
                     <div id="inventoryList">
-                        <!-- Gerado dinamicamente -->
-                    </div>
+                        </div>
                 </div>
             </aside>
 
             <section class="canvas-area" id="canvasArea">
                 <div id="pairContainer">
-                    <!-- Gerado dinamicamente via JS -->
-                </div>
+                    </div>
             </section>
         </section>
     </main>
 
-    <!-- AREA OCULTA PARA GERAÇÃO DA IMAGEM PDF -->
     <div id="printArea"></div>
 
     <script>
@@ -519,7 +555,7 @@
             { pod: 'LH', qty: 10, size: '45', base: 'dry', mods: ['hc'] }
         ];
 
-        // --- SISTEMA DE SALVAMENTO LOCAL ---
+        // --- SISTEMA DE SALVAMENTO LOCAL & JSON ---
         function persistData() {
             const dataToSave = {
                 version: 2, 
@@ -556,6 +592,45 @@
                 localStorage.removeItem('stowagePlanData');
                 location.reload();
             }
+        }
+
+        function setupJsonExportImport() {
+            document.getElementById('btnExportJson').addEventListener('click', () => {
+                const data = localStorage.getItem('stowagePlanData');
+                if(!data) { alert('Nenhum dado salvo localmente para exportar.'); return; }
+                const blob = new Blob([data], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'stowage_plan_backup.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+
+            document.getElementById('btnImportJson').addEventListener('click', () => {
+                document.getElementById('importJsonInput').click();
+            });
+
+            document.getElementById('importJsonInput').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if(!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const parsed = JSON.parse(ev.target.result);
+                        if(parsed.shipTopology && parsed.savedShip) {
+                            localStorage.setItem('stowagePlanData', ev.target.result);
+                            alert('Plano importado com sucesso! A página será recarregada.');
+                            location.reload();
+                        } else {
+                            alert('Arquivo JSON inválido para este aplicativo.');
+                        }
+                    } catch(err) {
+                        alert('Erro ao ler o arquivo JSON.');
+                    }
+                };
+                reader.readAsText(file);
+            });
         }
 
         // --- 3. INICIALIZAÇÃO DA TOPOLOGIA PERFEITA (BASEADA NO PDF ALIANÇA) ---
@@ -687,16 +762,13 @@
         }
 
         function setupGridEditControls() {
-            // Controle novo para alternar a coluna 00
             document.getElementById('btnToggleRoll00').addEventListener('click', () => {
                 let bayId = document.getElementById('editGridBaySelect').value;
                 let grid = bayGrids[bayId];
 
                 if (grid.cols.includes('00')) {
-                    // Remove 00
                     grid.cols = grid.cols.filter(c => c !== '00');
                 } else {
-                    // Adiciona 00 no meio exato
                     let insertIndex = grid.cols.findIndex(c => parseInt(c) % 2 !== 0);
                     if (insertIndex === -1) {
                         grid.cols.push('00');
@@ -865,6 +937,7 @@
             document.getElementById('exportPdfBtn').addEventListener('click', generateRealPdf);
 
             setupGridEditControls();
+            setupJsonExportImport();
             syncInventoryFromTable();
             
             if(localStorage.getItem('stowagePlanData') === null) {
@@ -1160,7 +1233,7 @@
             attachCellListeners();
         }
 
-        // --- EXPORTAR PDF (MOTOR DE REFERÊNCIA FUNCIONAL) ---
+        // --- EXPORTAR PDF ---
         async function generateRealPdf() {
             const loadingOverlay = document.getElementById('pdfLoadingOverlay');
             const printArea = document.getElementById('printArea');
@@ -1206,7 +1279,7 @@
             loadingOverlay.style.display = 'none';
         }
 
-        // --- 7. LÓGICA DE CLIQUE E SHIFT (Pintura / Deleção) ---
+        // --- 7. LÓGICA DE CLIQUE E SHIFT ---
         function removeContainer(bayId, rStr, cStr) {
             let coord = `${rStr}-${cStr}`;
             let existing = savedShip[bayId][coord];
