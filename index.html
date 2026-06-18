@@ -27,7 +27,16 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; user-select: none; }
 
-        body { background-color: var(--bg-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        html, body { height: 100%; width: 100%; }
+
+        body { 
+            background-color: var(--bg-color); 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; /* Fallback para navegadores antigos */
+            height: 100dvh; /* Medida dinâmica para tablets/celulares que corrige o corte no fundo */
+            overflow: hidden; 
+        }
 
         /* ================= MODAL INICIAL E LOADING ================= */
         .modal-overlay {
@@ -87,10 +96,10 @@
         .btn-export { background: #3498db; }
         .btn-export:hover { background: #2980b9; }
 
-        main { display: flex; flex: 1; overflow: hidden; }
+        main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
 
         /* ================= TELA 1: LISTA DE CARGA (INPUT) ================= */
-        #cargoView { display: flex; width: 100%; height: 100%; background: #fff; flex-direction: column; user-select: auto; overflow: hidden;}
+        #cargoView { display: flex; width: 100%; height: 100%; min-height: 0; background: #fff; flex-direction: column; user-select: auto; overflow: hidden;}
         .cargo-header { padding: 20px; background: #fafafa; border-bottom: 1px solid #ddd; position: relative; flex-shrink: 0;}
         
         .color-picker-group { display: flex; gap: 15px; margin-top: 15px; align-items: center; background: #eee; padding: 10px; border-radius: 6px;}
@@ -98,7 +107,7 @@
         .color-picker-label { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: bold; cursor: pointer; padding: 4px 8px; background: white; border: 1px solid #ccc; border-radius: 4px;}
         .color-picker-label input { width: 20px; height: 20px; padding: 0; border: none; cursor: pointer; background: none;}
 
-        .cargo-table-container { flex: 1; padding: 20px; overflow-y: auto; }
+        .cargo-table-container { flex: 1; padding: 20px 20px 80px 20px; overflow-y: auto; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 13px; }
         th { background-color: #f4f4f4; position: sticky; top: 0; z-index: 10;}
@@ -115,11 +124,11 @@
         .btn-reset-data:hover { background: #c9302c; }
 
         /* ================= TELA 2: PLANO MANUAL & VISÃO ================= */
-        #manualView { display: none; width: 100%; height: 100%; }
+        #manualView { display: none; width: 100%; height: 100%; min-height: 0;}
         
         .sidebar {
             width: 360px; background-color: #fff; border-right: 2px solid #ccc;
-            display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0;
+            display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; padding-bottom: 40px;
         }
 
         .tool-section { padding: 15px; border-bottom: 1px solid #eee; background: #fafafa; }
@@ -173,7 +182,7 @@
         .palette-counter.zero { background: #888; }
 
         .canvas-area {
-            flex: 1; padding: 30px; overflow: auto; display: flex; flex-direction: column; align-items: center; background-color: var(--bg-color);
+            flex: 1; padding: 30px 30px 80px 30px; overflow: auto; display: flex; flex-direction: column; align-items: center; background-color: var(--bg-color);
         }
         
         /* GRIDS & BAYS */
@@ -326,12 +335,14 @@
 </head>
 <body>
 
+    <!-- OVERLAY DE LOADING DO PWA -->
     <div id="pdfLoadingOverlay">
         <div class="spinner"></div>
         <h2>Processando Dados...</h2>
         <p>Isso pode levar alguns segundos. Não feche a página.</p>
     </div>
 
+    <!-- MODAL DE BOAS VINDAS -->
     <div id="welcomeModal" class="modal-overlay">
         <div class="modal-content">
             <h2>🚢 Stowage Plan Pro - Bem-vindo</h2>
@@ -361,6 +372,7 @@
     </header>
 
     <main>
+        <!-- ================= TELA 1: LISTA DE CARGA (INPUT) ================= -->
         <section id="cargoView">
             <div class="cargo-header">
                 <h3 style="margin-bottom: 5px;">Tabela de Contêineres (Padrão TTM 2026 Carregado)</h3>
@@ -390,10 +402,11 @@
                         </tr>
                     </thead>
                     <tbody id="cargoTbody">
-                        </tbody>
+                        <!-- Preenchido via JS -->
+                    </tbody>
                 </table>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; gap: 10px; align-items: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <button class="btn-add" id="addCargoRowBtn">+ Adicionar Linha</button>
                         <button class="btn-export" id="btnExportJson" style="padding: 8px 16px; border-radius: 4px; border: none; background: #3498db; color: white; font-weight: bold; cursor: pointer;">📥 Exportar JSON</button>
                         <button class="btn-add" id="btnImportJson" style="background: #f39c12;">📂 Importar JSON</button>
@@ -404,9 +417,11 @@
             </div>
         </section>
 
+        <!-- ================= TELA 2: PLANO MANUAL & VISÃO ================= -->
         <section id="manualView">
             <aside class="sidebar">
                 
+                <!-- PAINEL DE EXPANSÃO DA GRADE (SÓ APARECE NO MODO EDIÇÃO) -->
                 <div id="gridEditPanel" class="grid-edit-panel">
                     <h4>⚙️ Expandir Grade da Bay</h4>
                     <select id="editGridBaySelect" class="grid-edit-select"></select>
@@ -457,17 +472,20 @@
                         <button class="btn-deselect" id="btnDeselect">Desmarcar</button>
                     </div>
                     <div id="inventoryList">
-                        </div>
+                        <!-- Gerado dinamicamente -->
+                    </div>
                 </div>
             </aside>
 
             <section class="canvas-area" id="canvasArea">
                 <div id="pairContainer">
-                    </div>
+                    <!-- Gerado dinamicamente via JS -->
+                </div>
             </section>
         </section>
     </main>
 
+    <!-- AREA OCULTA PARA GERAÇÃO DA IMAGEM PDF -->
     <div id="printArea"></div>
 
     <script>
@@ -633,13 +651,12 @@
             });
         }
 
-        // --- 3. INICIALIZAÇÃO DA TOPOLOGIA PERFEITA (BASEADA NO PDF ALIANÇA) ---
+        // --- 3. INICIALIZAÇÃO DA TOPOLOGIA PERFEITA ---
         function isCellHiddenDefault(bayId, row, col) {
             const b = parseInt(bayId); 
             const rIdxA = ROWS_ABOVE_DEFAULT.indexOf(row);
             const isAbove = rIdxA !== -1;
             
-            // BAY 01 e 03
             if (b === 1 || b === 3) {
                 if (isAbove) {
                     if (row !== '84' && row !== '82') return true;
@@ -660,7 +677,6 @@
                 }
             }
 
-            // BAY 05 e 07
             if (b === 5 || b === 7) {
                 if (isAbove) {
                     if (row === '92' || row === '90') return true;
@@ -674,7 +690,6 @@
                 }
             }
 
-            // BAY 09 a 15
             if (b >= 9 && b <= 15) {
                 if (isAbove) {
                     if (row === '92' || row === '90') return true;
@@ -685,7 +700,6 @@
                 }
             }
 
-            // BAY 17 e 19 
             if (b === 17 || b === 19) {
                 if (isAbove) {
                     if (row === '92') return true;
@@ -697,7 +711,6 @@
                 }
             }
 
-            // BAY 21 a 35
             if ((b >= 21 && b <= 27) || b === 33 || b === 35) {
                 if (isAbove) {
                     if (row === '92') return true;
@@ -708,7 +721,6 @@
                 }
             }
 
-            // BAY 37 e 39 
             if (b === 37 || b === 39) {
                 if (isAbove) return false;
                 else return true;
