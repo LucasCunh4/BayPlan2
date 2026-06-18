@@ -33,8 +33,8 @@
             background-color: var(--bg-color); 
             display: flex; 
             flex-direction: column; 
-            height: 100vh; /* Fallback para navegadores antigos */
-            height: 100dvh; /* Medida dinâmica para tablets/celulares que corrige o corte no fundo */
+            height: 100vh; 
+            height: 100dvh; 
             overflow: hidden; 
         }
 
@@ -117,7 +117,7 @@
         .attr-checks label:hover { background: #eef5ff; border-color: var(--primary); }
         .attr-checks input { width: auto; margin-right: 4px; }
         
-        .btn-add { background: #5cb85c; color: white; border: none; padding: 8px 16px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .btn-add { background: #5cb85c; color: white; border: none; padding: 8px 16px; cursor: pointer; border-radius: 4px; font-weight: bold; margin-right: 10px; }
         .btn-clear-row { background: #f8f9fa; border: 1px dashed #d9534f; color: #d9534f; cursor: pointer; padding: 6px 10px; font-weight: bold; border-radius: 4px;}
         .btn-clear-row:hover { background: #fee; }
         .btn-reset-data { background: #d9534f; color: white; border: none; padding: 8px 16px; cursor: pointer; border-radius: 4px; font-weight: bold; }
@@ -202,7 +202,8 @@
         .bay-grid-flex { display: flex; align-items: center; }
 
         .axis-row { display: flex; margin-bottom: 0px; }
-        .axis-col-labels { display: flex; margin-left: 28px; margin-bottom: 4px; margin-top: 4px;}
+        /* A margem esquerda foi removida, o alinhamento agora é feito ancorando no flexbox espelho */
+        .axis-col-labels { display: flex; margin-bottom: 4px; margin-top: 4px;}
         .axis-label { width: var(--cell-size); text-align: center; font-size: 11px; font-weight: bold; color: #666; box-sizing: border-box; }
         .row-label { width: 24px; display: flex; align-items: center; justify-content: flex-end; margin-right: 4px; font-size: 11px; font-weight: bold; color: #666; box-sizing: border-box; }
         .deck-separator { width: 100%; height: 6px; background-color: #111; margin: 6px 0; border-radius: 2px;}
@@ -335,14 +336,12 @@
 </head>
 <body>
 
-    <!-- OVERLAY DE LOADING DO PWA -->
     <div id="pdfLoadingOverlay">
         <div class="spinner"></div>
         <h2>Processando Dados...</h2>
         <p>Isso pode levar alguns segundos. Não feche a página.</p>
     </div>
 
-    <!-- MODAL DE BOAS VINDAS -->
     <div id="welcomeModal" class="modal-overlay">
         <div class="modal-content">
             <h2>🚢 Stowage Plan Pro - Bem-vindo</h2>
@@ -372,7 +371,6 @@
     </header>
 
     <main>
-        <!-- ================= TELA 1: LISTA DE CARGA (INPUT) ================= -->
         <section id="cargoView">
             <div class="cargo-header">
                 <h3 style="margin-bottom: 5px;">Tabela de Contêineres (Padrão TTM 2026 Carregado)</h3>
@@ -402,8 +400,7 @@
                         </tr>
                     </thead>
                     <tbody id="cargoTbody">
-                        <!-- Preenchido via JS -->
-                    </tbody>
+                        </tbody>
                 </table>
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -417,11 +414,9 @@
             </div>
         </section>
 
-        <!-- ================= TELA 2: PLANO MANUAL & VISÃO ================= -->
         <section id="manualView">
             <aside class="sidebar">
                 
-                <!-- PAINEL DE EXPANSÃO DA GRADE (SÓ APARECE NO MODO EDIÇÃO) -->
                 <div id="gridEditPanel" class="grid-edit-panel">
                     <h4>⚙️ Expandir Grade da Bay</h4>
                     <select id="editGridBaySelect" class="grid-edit-select"></select>
@@ -472,20 +467,17 @@
                         <button class="btn-deselect" id="btnDeselect">Desmarcar</button>
                     </div>
                     <div id="inventoryList">
-                        <!-- Gerado dinamicamente -->
-                    </div>
+                        </div>
                 </div>
             </aside>
 
             <section class="canvas-area" id="canvasArea">
                 <div id="pairContainer">
-                    <!-- Gerado dinamicamente via JS -->
-                </div>
+                    </div>
             </section>
         </section>
     </main>
 
-    <!-- AREA OCULTA PARA GERAÇÃO DA IMAGEM PDF -->
     <div id="printArea"></div>
 
     <script>
@@ -651,7 +643,7 @@
             });
         }
 
-        // --- 3. INICIALIZAÇÃO DA TOPOLOGIA PERFEITA ---
+        // --- 3. INICIALIZAÇÃO DA TOPOLOGIA PERFEITA (BASEADA NO PDF ALIANÇA) ---
         function isCellHiddenDefault(bayId, row, col) {
             const b = parseInt(bayId); 
             const rIdxA = ROWS_ABOVE_DEFAULT.indexOf(row);
@@ -1172,11 +1164,14 @@
                     <div class="axis-title">ROLL</div>
             `;
             
-            let colLabels = '<div class="axis-col-labels">';
+            /* A linha dos Rótulos (Rolls) agora replica exatamente o flexbox da linha do contêiner */
+            let colLabels = `<div class="axis-row" style="margin-top: 4px; margin-bottom: 4px;">`;
+            colLabels += `<div class="row-label" style="visibility: hidden; border: none; pointer-events: none;"></div>`;
+            colLabels += `<div class="axis-col-labels" style="border: none;">`;
             bayGrid.cols.forEach(c => {
                 colLabels += `<div class="axis-label" contenteditable="${isEditable ? 'true' : 'false'}" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" onblur="renameAxis('${bayId}', 'col', '${c}', this)">${c}</div>`;
             });
-            colLabels += '</div>';
+            colLabels += '</div></div>';
             
             bayHtml += colLabels;
 
@@ -1223,8 +1218,17 @@
             bayHtml += `<div class="deck-separator"></div>`;
             bayHtml += drawRows(bayGrid.rowsBelow, 'row-below');
             
+            /* Rodapé de Rótulos replicando estrutura flexbox da grid */
+            let colFooter = `<div class="axis-row" style="margin-top: 4px; margin-bottom: 4px;">`;
+            colFooter += `<div class="row-label" style="visibility: hidden; border: none; pointer-events: none;"></div>`;
+            colFooter += `<div class="axis-col-labels" style="border: none;">`;
+            bayGrid.cols.forEach(c => {
+                colFooter += `<div class="axis-label" contenteditable="${isEditable ? 'true' : 'false'}" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" onblur="renameAxis('${bayId}', 'col', '${c}', this)">${c}</div>`;
+            });
+            colFooter += '</div></div>';
+            
             bayHtml += `</div></div>`; 
-            bayHtml += colLabels;
+            bayHtml += colFooter;
             bayHtml += `</div></div>`; 
             
             return bayHtml;
@@ -1245,7 +1249,7 @@
             attachCellListeners();
         }
 
-        // --- EXPORTAR PDF ---
+        // --- EXPORTAR PDF (IDÊNTICO AO CÓDIGO DA REFERÊNCIA) ---
         async function generateRealPdf() {
             const loadingOverlay = document.getElementById('pdfLoadingOverlay');
             const printArea = document.getElementById('printArea');
