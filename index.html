@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Stowage Plan Pro - Tracking Manual</title>
     
+    <!-- TAGS PARA O PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a2a3a">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1000/1000966.png">
@@ -121,7 +122,7 @@
         .btn-deselect { background: transparent; border: 1px solid white; color: white; padding: 3px 8px; border-radius: 3px; cursor:pointer; font-size: 10px;}
         .btn-deselect:hover { background: rgba(255,255,255,0.2); }
 
-        .palette-item { display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.1s; background: white; }
+        .palette-item { display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.1s; background: white; touch-action: manipulation; }
         .palette-item:hover { background: #f4f7f6; }
         .palette-item.active { background: #eef5ff; border-left: 5px solid var(--primary); padding-left: 10px; }
         .palette-item.complete { opacity: 0.4; cursor: not-allowed; background: #f9f9f9;}
@@ -146,8 +147,8 @@
 
         .axis-row { display: flex; margin-bottom: 0px; }
         .axis-col-labels { display: flex; border: none; }
-        .axis-label { width: var(--cell-size); min-width: var(--cell-size); flex-shrink: 0; text-align: center; font-size: 11px; font-weight: bold; color: #666; box-sizing: border-box; touch-action: none; }
-        .row-label { width: 24px; min-width: 24px; flex-shrink: 0; display: flex; align-items: center; justify-content: flex-end; margin-right: 4px; font-size: 11px; font-weight: bold; color: #666; box-sizing: border-box; touch-action: none;}
+        .axis-label { width: var(--cell-size); min-width: var(--cell-size); flex-shrink: 0; text-align: center; font-size: 11px; font-weight: bold; color: #666; box-sizing: border-box; }
+        .row-label { width: 24px; min-width: 24px; flex-shrink: 0; display: flex; align-items: center; justify-content: flex-end; margin-right: 4px; font-size: 11px; font-weight: bold; color: #666; box-sizing: border-box; }
         
         /* TAMPAS DOS PORÕES (DECK SEPARATOR) COM FLEX */
         .deck-separator-container { width: 100%; display: flex; gap: 4px; justify-content: center; margin: 6px 0; box-sizing: border-box; }
@@ -155,7 +156,7 @@
 
         .grid-row { display: flex; }
         
-        /* CLASSE CELULA COM PROTEÇÃO TOUCH (VITAL PARA TABLET/CELULAR) */
+        /* CLASSE CELULA COM PROTEÇÃO TOUCH ABSOLUTA E PONTEIROS */
         .cell { 
             width: var(--cell-size); 
             min-width: var(--cell-size); 
@@ -170,7 +171,7 @@
             justify-content: center; 
             transition: 0.1s; 
             box-sizing: border-box; 
-            touch-action: none; /* Bloqueia a rolagem da tela se o dedo estiver aqui */
+            touch-action: manipulation; /* Otimização crucial para cliques em mobile/tablet */
         }
         
         .cell:hover { opacity: 0.8; border: 2px solid #000; z-index: 50;}
@@ -235,14 +236,14 @@
         <p>Isso pode levar alguns segundos. Não feche a página.</p>
     </div>
 
-    <!-- MODAL DE BOAS VINDAS -->
+    <!-- MODAL DE BOAS VINDAS (Forçado para fechar ao clicar) -->
     <div id="welcomeModal" class="modal-overlay">
         <div class="modal-content">
             <h2>🚢 Stowage Plan Pro - Otimizado para Touch</h2>
             <ul>
                 <li><strong style="color: #d9534f;">MUDE AS CORES (OBRIGATÓRIO):</strong> Vá na aba "1. Lista de Carga", logo abaixo, e altere a paleta de cores dos portos clicando nas caixas de cor.</li>
-                <li><strong>Toque Corrigido (Celular/Tablet):</strong> A grade do navio agora possui uma trava física (`touch-action`). Isso garante que, ao clicar numa célula para colocar a carga, a tela não vai rolar nem falhar.</li>
-                <li><strong>Atenção:</strong> Lembre-se sempre de selecionar um lote de carga na barra lateral esquerda antes de clicar no navio. Se não houver nada selecionado, o clique na grade vazia será ignorado.</li>
+                <li><strong>Toque Corrigido (Celular/Tablet):</strong> A grade do navio agora possui uma trava física avançada. O clique é registrado de forma instantânea sem precisar dar zoom ou rolar a página por engano.</li>
+                <li><strong>Atenção ao Clique:</strong> Lembre-se sempre de selecionar um lote de carga na barra lateral esquerda antes de clicar no navio. Se não houver nada selecionado, o clique na grade vazia irá alertar você.</li>
             </ul>
             <button id="closeModalBtn" class="btn-start" onclick="document.getElementById('welcomeModal').classList.remove('active')">Entendido, vamos começar!</button>
         </div>
@@ -562,7 +563,7 @@
             if (b >= 9 && b <= 15) { if (isAbove) { if (row === '92' || row === '90') return true; return false; } else { if (col === '00' || col === '12' || col === '11') return true; return false; } }
             if (b === 17 || b === 19) { if (isAbove) { if (row === '92') return true; if ((row === '90' || row === '88' || row === '86') && col === '00') return true; return false; } else { if (col === '00' || col === '12' || col === '11') return true; return false; } }
             if ((b >= 21 && b <= 27) || b === 33 || b === 35) { if (isAbove) { if (row === '92') return true; return false; } else { if (col === '00' || col === '12' || col === '11') return true; return false; } }
-            if (b === 37 || b === 39) { if (isAbove) return false; else return true; }
+            if (b === 37 || b === 39) { if (!isAbove) return true; return false; }
             if (col === '00' && !isAbove) return true; return false;
         }
 
@@ -758,11 +759,15 @@
                     <option value="imo" ${d_base==='imo'?'selected':''}>IMO Class</option><option value="livestock" ${d_base==='livestock'?'selected':''}>Live Stock</option>
                     <option value="tank" ${d_base==='tank'?'selected':''}>Tank</option>
                 </select></td>
-                <td><div class="attr-checks" onchange="syncInventoryFromTable()">
-                    <label><input type="checkbox" value="hc" ${isChecked('hc')}>HC</label><label><input type="checkbox" value="ow" ${isChecked('ow')}>OW</label>
-                    <label><input type="checkbox" value="oh" ${isChecked('oh')}>OH</label><label><input type="checkbox" value="ol" ${isChecked('ol')}>OL</label>
-                    <label><input type="checkbox" value="empty" ${isChecked('empty')}>Empty (E)</label><label><input type="checkbox" value="reefer" ${isChecked('reefer')}>Reefer (R)</label>
-                    <label><input type="checkbox" value="imo5" ${isChecked('imo5')}>IMO 5</label><label><input type="checkbox" value="imo8" ${isChecked('imo8')}>IMO 8</label>
+                <td><div class="attr-checks">
+                    <label><input type="checkbox" value="hc" ${isChecked('hc')} onchange="syncInventoryFromTable()">HC</label>
+                    <label><input type="checkbox" value="ow" ${isChecked('ow')} onchange="syncInventoryFromTable()">OW</label>
+                    <label><input type="checkbox" value="oh" ${isChecked('oh')} onchange="syncInventoryFromTable()">OH</label>
+                    <label><input type="checkbox" value="ol" ${isChecked('ol')} onchange="syncInventoryFromTable()">OL</label>
+                    <label><input type="checkbox" value="empty" ${isChecked('empty')} onchange="syncInventoryFromTable()">Empty (E)</label>
+                    <label><input type="checkbox" value="reefer" ${isChecked('reefer')} onchange="syncInventoryFromTable()">Reefer (R)</label>
+                    <label><input type="checkbox" value="imo5" ${isChecked('imo5')} onchange="syncInventoryFromTable()">IMO 5</label>
+                    <label><input type="checkbox" value="imo8" ${isChecked('imo8')} onchange="syncInventoryFromTable()">IMO 8</label>
                 </div></td>
                 <td><button class="btn-clear-row" onclick="this.closest('tr').remove(); syncInventoryFromTable();">X</button></td>
             `;
@@ -782,7 +787,12 @@
             recalculateInventory(); persistData();
         }
 
-        // --- 5. PALETA LATERAL ---
+        // --- 5. PALETA LATERAL COM FUNÇÃO GLOBAL ---
+        window.selectInventory = function(id, isComplete, isActive) {
+            if (!isComplete) { activeInvId = id; renderInventoryPalette(); } 
+            else if (isComplete && isActive) { activeInvId = null; renderInventoryPalette(); }
+        };
+
         function renderInventoryPalette() {
             const list = document.getElementById('inventoryList'); list.innerHTML = '';
             globalInventory.forEach(inv => {
@@ -792,7 +802,9 @@
                 inv.mods.forEach(m => layersHtml += `<div class="layer mod-${m}"></div>`);
 
                 let el = document.createElement('div'); el.className = `palette-item ${isActive ? 'active' : ''} ${isComplete ? 'complete' : ''}`;
-                el.onclick = () => { if (!isComplete) { activeInvId = inv.id; renderInventoryPalette(); } else if (isComplete && isActive) { activeInvId = null; renderInventoryPalette(); } };
+                
+                // Clicador à prova de falhas:
+                el.setAttribute('onclick', `selectInventory('${inv.id}', ${isComplete}, ${isActive})`);
                 
                 el.innerHTML = `
                     <div class="palette-cell" style="background-color: ${bgColor};"><span class="palette-port" style="color: ${inv.base==='oh40' ? '#111' : '#000'}">${inv.pod}</span>${layersHtml}</div>
@@ -822,7 +834,7 @@
             renderInventoryPalette(); persistData();
         }
 
-        // --- 6. RENDERIZAÇÃO DAS BAYS ---
+        // --- 6. RENDERIZAÇÃO DAS BAYS (COM CLIQUE INLINE INFALÍVEL) ---
         function getPortColorHex(portCode) { let input = document.getElementById('color-' + portCode.toLowerCase()); return input ? input.value : '#ffffff'; }
 
         function generatePairHtml(bay1, bay2, isPrint = false) {
@@ -854,7 +866,6 @@
                             if (cellData.base === 'blocked40') {
                                 contentHtml = `<div class="layer base-blocked40"></div>`;
                             } else if (cellData.base === 'blocked_ow' || cellData.base === 'blocked_ot') {
-                                // Deixa transparente
                                 bgColorStyle = isPrint ? 'background-color: #ffffff !important;' : 'background-color: var(--port-empty);';
                             } else if (cellData.invId !== undefined) {
                                 let inv = globalInventory.find(i => i.id === cellData.invId);
@@ -866,17 +877,14 @@
                                     let isReeferBay = bayId.includes('REEFER');
 
                                     if ((isImoBay && !isImoContainer) || (isReeferBay && !isReeferContainer)) {
-                                        // Ocupado na gêmea, mas não pertence a esta planta de visualização
                                         contentHtml = `<div class="layer base-blocked_twin" title="Ocupado por carga diferente na planta Standard"></div>`;
                                         bgColorStyle = isPrint ? 'background-color: #ffffff !important;' : 'background-color: var(--port-empty);';
                                     } else {
-                                        // Pertence à planta, desenha normalmente
                                         let actualHex = getPortColorHex(inv.pod);
                                         bgColorStyle = isPrint ? `background-color: ${actualHex} !important;` : `background-color: var(--port-${inv.pod.toLowerCase()});`;
                                         contentHtml += `<span class="port-text" style="color: ${inv.base==='oh40' ? '#111' : '#000'}">${inv.pod.toUpperCase()}</span>`;
                                         if(inv.base && inv.base !== 'dry') contentHtml += `<div class="layer base-${inv.base}"></div>`;
                                         inv.mods.forEach(m => {
-                                            // Se for OW, lemos a direção salva e aplicamos o CSS assimétrico
                                             if (m === 'ow') {
                                                 if (cellData.owType) contentHtml += `<div class="layer mod-ow-${cellData.owType}"></div>`;
                                                 else contentHtml += `<div class="layer mod-ow-both"></div>`; 
@@ -889,7 +897,8 @@
                             }
                         }
 
-                        let attrs = !isPrint ? `data-coord="${coord}" data-row="${row}" data-col="${col}" data-bay="${bayId}"` : '';
+                        // CLICADOR INLINE: O evento de clique é injetado diretamente no HTML
+                        let attrs = !isPrint ? `data-coord="${coord}" data-row="${row}" data-col="${col}" data-bay="${bayId}" onclick="handleCellAction(event, this)"` : '';
                         rowHtml += `<div class="cell ${isHidden}" ${attrs} style="${bgColorStyle}">${contentHtml}</div>`;
                     });
                     rowHtml += `</div></div>`; section += rowHtml;
@@ -923,12 +932,10 @@
                 const currentEditVal = editSelect.value;
                 editSelect.innerHTML = `<option value="${pair[0]}">Editar Bay ${pair[0]}</option><option value="${pair[1]}">Editar Bay ${pair[1]}</option>`;
                 if (pair.includes(currentEditVal)) editSelect.value = currentEditVal;
-                // Carrega o valor do separador atual no input
                 document.getElementById('inpDeckSeps').value = (bayGrids[editSelect.value].separators || [1]).join(',');
             }
 
             container.innerHTML = generatePairHtml(pair[0], pair[1], false);
-            attachCellListeners();
         }
 
         // --- EXPORTAR PDF ---
@@ -943,18 +950,72 @@
             printArea.style.display = 'none'; printArea.innerHTML = ''; headerEl.style.display = 'flex'; mainEl.style.display = 'flex'; loadingOverlay.style.display = 'none';
         }
 
-        // --- 7. LÓGICA DE CLIQUE E SHIFT (OW Assimétrico e Blocos) ---
+        // --- 7. LÓGICA DE CLIQUE GLOBAL (À PROVA DE FALHAS) ---
+        window.handleCellAction = function(e, cellEl) {
+            e.preventDefault(); // Impede evento fantasma duplo no touch
+            
+            let rStr = cellEl.getAttribute('data-row'); 
+            let cStr = cellEl.getAttribute('data-col'); 
+            let bayId = cellEl.getAttribute('data-bay');
+            
+            if (!rStr || !cStr || !bayId) return;
+
+            let grid = bayGrids[bayId]; 
+            let all_rows = [...grid.rowsAbove, ...grid.rowsBelow];
+            let rIdx = all_rows.indexOf(rStr); 
+            let cIdx = grid.cols.indexOf(cStr);
+            let coord = `${rStr}-${cStr}`;
+
+            // AVISO DE CLIQUE VAZIO
+            if (!currentState.editMode && !savedShip[bayId][coord] && activeInvId === null) {
+                alert("🚢 Selecione primeiro uma carga na lista da esquerda (ela ficará com borda azul) para poder estivar no navio!");
+                return;
+            }
+
+            if (e.shiftKey && activeInvId !== null && isShiftActionFill && !currentState.editMode) {
+                let inv = globalInventory.find(i => i.id === activeInvId);
+                if (!inv) return;
+            }
+
+            if (e.shiftKey && lastClickedCell && lastClickedCell.bayId === bayId) {
+                let minR = Math.min(rIdx, lastClickedCell.r); let maxR = Math.max(rIdx, lastClickedCell.r);
+                let minC = Math.min(cIdx, lastClickedCell.c); let maxC = Math.max(cIdx, lastClickedCell.c);
+                for(let r = minR; r <= maxR; r++) {
+                    for(let c = minC; c <= maxC; c++) {
+                        let targetCoord = `${all_rows[r]}-${grid.cols[c]}`;
+                        if(currentState.editMode) {
+                             getTwinBays(bayId).forEach(t => shipTopology[t][targetCoord] = isShiftActionFill);
+                        } else {
+                             if(isShiftActionFill) placeContainer(bayId, all_rows[r], grid.cols[c], false);
+                             else removeContainer(bayId, all_rows[r], grid.cols[c]);
+                        }
+                    }
+                }
+            } else {
+                if(currentState.editMode) {
+                     isShiftActionFill = !shipTopology[bayId][coord];
+                     getTwinBays(bayId).forEach(t => shipTopology[t][coord] = isShiftActionFill); 
+                } else {
+                     let existing = savedShip[bayId][coord];
+                     if (existing && existing.base === 'blocked_ow') {
+                         alert("Não pode colocar contêiner aqui. Espaço bloqueado por um contêiner Over Width (OW) adjacente.");
+                     } else if (existing && (existing.invId !== undefined || existing.base === 'blocked40')) {
+                         removeContainer(bayId, rStr, cStr); isShiftActionFill = false; 
+                     } else { 
+                         placeContainer(bayId, rStr, cStr); isShiftActionFill = true; 
+                     }
+                }
+                lastClickedCell = { r: rIdx, c: cIdx, bayId: bayId };
+            }
+            recalculateInventory(); renderBayPairsUI();       
+        };
+
+        // --- SISTEMA DE REMOÇÃO E ALOCAÇÃO ---
         function recastBlocks(bayId) {
             let twins = getTwinBays(bayId);
-            
-            // 1. Apaga todos os bloqueios OW das gêmeas (limpa a sujeira invisível)
             twins.forEach(t => {
-                for (let coord in savedShip[t]) {
-                    if (savedShip[t][coord] && savedShip[t][coord].base === 'blocked_ow') { delete savedShip[t][coord]; }
-                }
+                for (let coord in savedShip[t]) { if (savedShip[t][coord] && savedShip[t][coord].base === 'blocked_ow') { delete savedShip[t][coord]; } }
             });
-
-            // 2. Reconstrói os bloqueios para quem sobrou (Garante estabilidade ao deletar coisas do lado)
             twins.forEach(t => {
                 let grid = bayGrids[t];
                 for (let coord in savedShip[t]) {
@@ -963,15 +1024,10 @@
                         let inv = globalInventory.find(i => i.id === cell.invId);
                         if (!inv) continue;
                         let [rStr, cStr] = coord.split('-');
-                        
                         if (inv.mods.includes('ow') && cell.owType) {
                             let adjs = getAdjRolls(grid, cStr);
-                            if (cell.owType === 'left' || cell.owType === 'both') {
-                                if (adjs.left && !savedShip[t][`${rStr}-${adjs.left}`]) savedShip[t][`${rStr}-${adjs.left}`] = { base: 'blocked_ow' };
-                            }
-                            if (cell.owType === 'right' || cell.owType === 'both') {
-                                if (adjs.right && !savedShip[t][`${rStr}-${adjs.right}`]) savedShip[t][`${rStr}-${adjs.right}`] = { base: 'blocked_ow' };
-                            }
+                            if (cell.owType === 'left' || cell.owType === 'both') { if (adjs.left && !savedShip[t][`${rStr}-${adjs.left}`]) savedShip[t][`${rStr}-${adjs.left}`] = { base: 'blocked_ow' }; }
+                            if (cell.owType === 'right' || cell.owType === 'both') { if (adjs.right && !savedShip[t][`${rStr}-${adjs.right}`]) savedShip[t][`${rStr}-${adjs.right}`] = { base: 'blocked_ow' }; }
                         }
                     }
                 }
@@ -1000,7 +1056,6 @@
                 }
             }
 
-            // Refaz a varredura para liberar o bloqueio invisível do OW (se deletar o container que estava bloqueando)
             recastBlocks(bayId);
             let sib = getSiblingBay(bayId); if (sib) recastBlocks(sib);
         }
@@ -1010,12 +1065,9 @@
             if (shipTopology[bayId][coord]) return; 
             
             let twinsB1 = getTwinBays(bayId);
-            // Verifica se está livre em todas as plantas daquela bay (inclusive blocks de OW)
             for(let t of twinsB1) { 
                 if(savedShip[t][coord]) {
-                    if (savedShip[t][coord].base === 'blocked_ow') {
-                        if(showAlert) alert("Não pode colocar contêiner aqui. Espaço bloqueado por um contêiner Over Width (OW) adjacente.");
-                    }
+                    if (savedShip[t][coord].base === 'blocked_ow' && showAlert) { alert("Não pode colocar contêiner aqui. Espaço bloqueado por um contêiner Over Width (OW) adjacente."); }
                     return; 
                 } 
             }
@@ -1029,26 +1081,17 @@
                     let isOW = inv.mods.includes('ow');
                     let owType = 'none';
 
-                    // LÓGICA OW ASSIMÉTRICO (Esquerda/Direita)
                     if (isOW) {
-                        let grid = bayGrids[bayId];
-                        let adjs = getAdjRolls(grid, cStr);
-                        
+                        let grid = bayGrids[bayId]; let adjs = getAdjRolls(grid, cStr);
                         let checkBlocked = (c) => {
-                            if (!c) return true; // Se for borda (null), parede.
+                            if (!c) return true; // Parede do navio
                             let blocked = false;
-                            for(let tw of twinsB1) {
-                                if (shipTopology[tw][`${rStr}-${c}`] !== false) blocked = true;
-                                else if (savedShip[tw][`${rStr}-${c}`] && savedShip[tw][`${rStr}-${c}`].invId) blocked = true;
-                            }
+                            for(let tw of twinsB1) { if (shipTopology[tw][`${rStr}-${c}`] !== false) blocked = true; else if (savedShip[tw][`${rStr}-${c}`] && savedShip[tw][`${rStr}-${c}`].invId) blocked = true; }
                             if (is40) {
                                 let sibling = getSiblingBay(bayId);
                                 if (sibling) {
                                     let twinsB2 = getTwinBays(sibling);
-                                    for(let tw of twinsB2) {
-                                        if (shipTopology[tw][`${rStr}-${c}`] !== false) blocked = true;
-                                        else if (savedShip[tw][`${rStr}-${c}`] && savedShip[tw][`${rStr}-${c}`].invId) blocked = true;
-                                    }
+                                    for(let tw of twinsB2) { if (shipTopology[tw][`${rStr}-${c}`] !== false) blocked = true; else if (savedShip[tw][`${rStr}-${c}`] && savedShip[tw][`${rStr}-${c}`].invId) blocked = true; }
                                 }
                             }
                             return blocked;
@@ -1058,29 +1101,20 @@
                         let rightBlocked = checkBlocked(adjs.right);
 
                         if (leftBlocked && rightBlocked) {
-                            if(showAlert) alert("Over Width (OW) não pode ser estivado aqui! O espaço está esmagado, você precisa de pelo menos um slot lateral livre para a barriga da carga.");
-                            return;
-                        } else if (leftBlocked) {
-                            owType = 'right'; // Parede na esquerda, joga barriga pra direita
-                        } else if (rightBlocked) {
-                            owType = 'left'; // Parede na direita, joga barriga pra esquerda
-                        } else {
-                            owType = 'both'; // Simétrico no meio do nada
-                        }
+                            if(showAlert) alert("Over Width (OW) não pode ser estivado aqui! O espaço está esmagado, você precisa de pelo menos um slot lateral livre para a barriga da carga."); return;
+                        } else if (leftBlocked) { owType = 'right'; } 
+                        else if (rightBlocked) { owType = 'left'; } 
+                        else { owType = 'both'; }
                     }
 
                     if (is40) {
                         let sibling = getSiblingBay(bayId);
                         if (!sibling) return;
-                        
                         let twinsB2 = getTwinBays(sibling);
                         for(let t of twinsB2) { 
                             if (shipTopology[t][coord] || savedShip[t][coord]) {
-                                if (savedShip[t][coord] && savedShip[t][coord].base === 'blocked_ow') {
-                                    if(showAlert) alert("O slot na bay adjacente (" + sibling + ") está bloqueado por um contêiner Over Width (OW).");
-                                } else {
-                                    if(showAlert) alert("O slot na bay adjacente (" + sibling + ") não está livre para o 40 pés.");
-                                }
+                                if (savedShip[t][coord] && savedShip[t][coord].base === 'blocked_ow') { if(showAlert) alert("O slot na bay adjacente (" + sibling + ") está bloqueado por um contêiner Over Width (OW)."); } 
+                                else { if(showAlert) alert("O slot na bay adjacente (" + sibling + ") não está livre para o 40 pés."); }
                                 return;
                             } 
                         }
@@ -1090,66 +1124,15 @@
                     twinsB1.forEach(t => savedShip[t][coord] = { invId: inv.id, owType: owType });
                     inv.placed++; 
 
-                    // Joga o bloqueio imediatamente após colocar
                     recastBlocks(bayId);
                     if (is40) recastBlocks(getSiblingBay(bayId));
                 }
             }
         }
 
-        function attachCellListeners() {
-            document.querySelectorAll('.cell').forEach(cell => {
-                // ATUALIZAÇÃO VITAL: Usando pointerdown para garantir 100% de compatibilidade em telas touch (Tablet/S24+)
-                cell.addEventListener('pointerdown', function(e) {
-                    let rStr = this.getAttribute('data-row'); let cStr = this.getAttribute('data-col'); let bayId = this.getAttribute('data-bay');
-                    let grid = bayGrids[bayId]; let all_rows = [...grid.rowsAbove, ...grid.rowsBelow];
-                    let rIdx = all_rows.indexOf(rStr); let cIdx = grid.cols.indexOf(cStr);
-                    let coord = `${rStr}-${cStr}`;
-
-                    // VERIFICAÇÃO DE USO MANUAL (Se clicou sem ter carga na mão)
-                    if (!currentState.editMode && !savedShip[bayId][coord] && activeInvId === null) {
-                        alert("🚢 Selecione primeiro uma carga na lista da esquerda (ela ficará azul) para poder estivar no navio!");
-                        return;
-                    }
-
-                    if (e.shiftKey && activeInvId !== null && isShiftActionFill && !currentState.editMode) {
-                        let inv = globalInventory.find(i => i.id === activeInvId);
-                        if (!inv) return;
-                    }
-
-                    if (e.shiftKey && lastClickedCell && lastClickedCell.bayId === bayId) {
-                        let minR = Math.min(rIdx, lastClickedCell.r); let maxR = Math.max(rIdx, lastClickedCell.r);
-                        let minC = Math.min(cIdx, lastClickedCell.c); let maxC = Math.max(cIdx, lastClickedCell.c);
-                        for(let r = minR; r <= maxR; r++) {
-                            for(let c = minC; c <= maxC; c++) {
-                                let targetCoord = `${all_rows[r]}-${grid.cols[c]}`;
-                                if(currentState.editMode) {
-                                     getTwinBays(bayId).forEach(t => shipTopology[t][targetCoord] = isShiftActionFill);
-                                } else {
-                                     if(isShiftActionFill) placeContainer(bayId, all_rows[r], grid.cols[c], false);
-                                     else removeContainer(bayId, all_rows[r], grid.cols[c]);
-                                }
-                            }
-                        }
-                    } else {
-                        if(currentState.editMode) {
-                             isShiftActionFill = !shipTopology[bayId][coord];
-                             getTwinBays(bayId).forEach(t => shipTopology[t][coord] = isShiftActionFill); 
-                        } else {
-                             let existing = savedShip[bayId][coord];
-                             if (existing && existing.base === 'blocked_ow') {
-                                 alert("Não pode colocar contêiner aqui. Espaço bloqueado por um contêiner Over Width (OW) adjacente.");
-                             } else if (existing && (existing.invId !== undefined || existing.base === 'blocked40')) {
-                                 removeContainer(bayId, rStr, cStr); isShiftActionFill = false; 
-                             } else { 
-                                 placeContainer(bayId, rStr, cStr); isShiftActionFill = true; 
-                             }
-                        }
-                        lastClickedCell = { r: rIdx, c: cIdx, bayId: bayId };
-                    }
-                    recalculateInventory(); renderBayPairsUI();       
-                });
-            });
+        // --- SW PWA ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(e => console.log('SW Fail')); });
         }
 
         initApp();
