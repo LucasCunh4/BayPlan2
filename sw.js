@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stowage-plan-v18';
+const CACHE_NAME = 'stowage-plan-v19';
 const urlsToCache = [
   './',
   './index.html',
