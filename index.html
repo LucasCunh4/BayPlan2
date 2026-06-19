@@ -155,10 +155,12 @@
         .separator-gap-controls { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
         .separator-gap-empty { font-size: 11px; color: #777; text-align: center; margin-top: 6px; }
         .separator-editor-wrap { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 10px; }
-        .separator-editor-track { position: relative; height: 34px; border: 1px solid #ccc; border-radius: 5px; background: linear-gradient(to right, #f8f8f8, #fff); overflow: visible; touch-action: none; }
-        .separator-editor-bar { position: absolute; left: 8px; right: 8px; top: 14px; height: 6px; background: #111; border-radius: 3px; }
-        .separator-editor-gap-preview { position: absolute; top: 11px; width: 8px; height: 12px; transform: translateX(-50%); background: #fff; border-left: 1px solid #999; border-right: 1px solid #999; pointer-events: none; z-index: 2; }
-        .separator-editor-handle { position: absolute; top: 4px; width: 16px; height: 26px; transform: translateX(-50%); border: 1px solid #b36b00; border-radius: 4px; background: #f39c12; cursor: ew-resize; z-index: 3; box-shadow: 0 1px 3px rgba(0,0,0,0.25); touch-action: none; }
+        .separator-editor-track { position: relative; height: 40px; border: 1px solid #ccc; border-radius: 5px; background: linear-gradient(to right, #f8f8f8, #fff); overflow: visible; touch-action: none; }
+        .separator-editor-bar { position: absolute; top: 17px; height: 6px; background: #111; border-radius: 3px; }
+        .separator-editor-gap-preview { position: absolute; top: 14px; width: 8px; height: 12px; transform: translateX(-50%); background: #fff; border-left: 1px solid #999; border-right: 1px solid #999; pointer-events: none; z-index: 2; }
+        .separator-editor-handle { position: absolute; top: 7px; width: 16px; height: 26px; transform: translateX(-50%); border: 1px solid #b36b00; border-radius: 4px; background: #f39c12; cursor: ew-resize; z-index: 3; box-shadow: 0 1px 3px rgba(0,0,0,0.25); touch-action: none; }
+        .separator-editor-bound-handle { position: absolute; top: 2px; width: 18px; height: 36px; transform: translateX(-50%); border: 1px solid #263847; border-radius: 5px; background: #34495e; cursor: ew-resize; z-index: 4; box-shadow: 0 1px 3px rgba(0,0,0,0.28); touch-action: none; }
+        .separator-editor-bound-handle::after { content: '↔'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #fff; font-weight: bold; }
         .separator-editor-handle::after { content: '↔'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #fff; font-weight: bold; }
         .separator-editor-scale { display: flex; justify-content: space-between; font-size: 9px; color: #777; margin-top: 4px; }
         .separator-editor-help { font-size: 10px; color: #555; text-align: center; margin-top: 6px; line-height: 1.25; }
@@ -247,7 +249,8 @@
             box-sizing: border-box; 
         }
         
-        .deck-separator { width: 100%; height: 8px; margin: 6px 0; position: relative; background: #111; border-radius: 2px; overflow: visible; }
+        .deck-separator { width: 100%; height: 8px; margin: 6px 0; position: relative; background: transparent; border-radius: 2px; overflow: visible; }
+        .deck-separator-line { position: absolute; top: 0; height: 8px; background: #111; border-radius: 2px; z-index: 1; }
         .deck-separator-gap { position: absolute; top: -1px; width: 8px; height: 10px; transform: translateX(-50%); background: #fff; z-index: 2; }
         
         .grid-row { display: flex; }
@@ -385,7 +388,7 @@
 
         .pdf-page .bay-pair-wrapper { width: 100%; transform: scale(1.05); transform-origin: top center; }
         .pdf-page .cell { border: 1px solid #111 !important; }
-        .pdf-page .deck-separator { background-color: #000 !important; }
+        .pdf-page .deck-separator-line { background-color: #000 !important; }
         .pdf-page .bay-container { border: 2px solid #aaa !important; box-shadow: none !important;}
 
     </style>
@@ -593,25 +596,37 @@
                 cols: [...COLS_DEFAULT],
                 rowsAbove: [...ROWS_ABOVE_DEFAULT],
                 rowsBelow: [...ROWS_BELOW_DEFAULT],
-                deckSeparator: { divisions: 1, positions: [] }
+                deckSeparator: { divisions: 1, positions: [], startPct: 0, endPct: 100 }
             };
         }
 
-        function getEvenDeckSeparatorPositions(divisions) {
+        function getEvenDeckSeparatorPositions(divisions, startPct = 0, endPct = 100) {
             let positions = [];
-            for (let i = 1; i < divisions; i++) positions.push((100 / divisions) * i);
+            const start = parseFloat(startPct) || 0;
+            const end = parseFloat(endPct) || 100;
+            for (let i = 1; i < divisions; i++) positions.push(start + ((end - start) / divisions) * i);
             return positions;
         }
 
         function normalizeDeckSeparatorPositions(cfg) {
             const needed = Math.max(0, cfg.divisions - 1);
             const minGap = 3;
+            const minBarWidth = Math.max(8, needed * minGap + 4);
 
-            if (!Array.isArray(cfg.positions)) cfg.positions = getEvenDeckSeparatorPositions(cfg.divisions);
-            cfg.positions = cfg.positions.map(p => Math.max(2, Math.min(98, parseFloat(p) || 0))).sort((a, b) => a - b);
+            cfg.startPct = Math.max(0, Math.min(92, parseFloat(cfg.startPct ?? 0)));
+            cfg.endPct = Math.max(8, Math.min(100, parseFloat(cfg.endPct ?? 100)));
+            if (cfg.endPct - cfg.startPct < minBarWidth) {
+                if (cfg.startPct + minBarWidth <= 100) cfg.endPct = cfg.startPct + minBarWidth;
+                else cfg.startPct = Math.max(0, cfg.endPct - minBarWidth);
+            }
+
+            if (!Array.isArray(cfg.positions)) cfg.positions = getEvenDeckSeparatorPositions(cfg.divisions, cfg.startPct, cfg.endPct);
+            cfg.positions = cfg.positions
+                .map(p => Math.max(cfg.startPct + 2, Math.min(cfg.endPct - 2, parseFloat(p) || 0)))
+                .sort((a, b) => a - b);
 
             while (cfg.positions.length < needed) {
-                const bounds = [0, ...cfg.positions, 100];
+                const bounds = [cfg.startPct, ...cfg.positions, cfg.endPct];
                 let bestIdx = 0;
                 let bestSize = -1;
                 for (let i = 0; i < bounds.length - 1; i++) {
@@ -625,19 +640,21 @@
             if (cfg.positions.length > needed) cfg.positions.length = needed;
 
             cfg.positions = cfg.positions.map((p, idx) => {
-                const min = idx === 0 ? 2 : cfg.positions[idx - 1] + minGap;
-                const max = idx === needed - 1 ? 98 : 100 - ((needed - idx - 1) * minGap) - 2;
+                const min = idx === 0 ? cfg.startPct + 2 : cfg.positions[idx - 1] + minGap;
+                const max = idx === needed - 1 ? cfg.endPct - 2 : cfg.endPct - ((needed - idx - 1) * minGap) - 2;
                 return Math.max(min, Math.min(max, p));
             });
         }
 
         function ensureDeckSeparatorConfig(grid) {
-            if (!grid.deckSeparator) grid.deckSeparator = { divisions: 1, positions: [] };
+            if (!grid.deckSeparator) grid.deckSeparator = { divisions: 1, positions: [], startPct: 0, endPct: 100 };
             grid.deckSeparator.divisions = Math.max(1, parseInt(grid.deckSeparator.divisions) || 1);
+            if (grid.deckSeparator.startPct === undefined) grid.deckSeparator.startPct = 0;
+            if (grid.deckSeparator.endPct === undefined) grid.deckSeparator.endPct = 100;
 
             // Compatibilidade com backups antigos que guardavam apenas os espaços em px.
             if (!Array.isArray(grid.deckSeparator.positions)) {
-                grid.deckSeparator.positions = getEvenDeckSeparatorPositions(grid.deckSeparator.divisions);
+                grid.deckSeparator.positions = getEvenDeckSeparatorPositions(grid.deckSeparator.divisions, grid.deckSeparator.startPct, grid.deckSeparator.endPct);
             }
 
             normalizeDeckSeparatorPositions(grid.deckSeparator);
@@ -949,10 +966,11 @@
 
                 if (delta > 0) {
                     cfg.divisions += 1;
+                    cfg.positions = getEvenDeckSeparatorPositions(cfg.divisions, cfg.startPct, cfg.endPct);
                     normalizeDeckSeparatorPositions(cfg);
                 } else if (delta < 0 && cfg.divisions > 1) {
                     cfg.divisions -= 1;
-                    if (cfg.positions.length > cfg.divisions - 1) cfg.positions.pop();
+                    cfg.positions = getEvenDeckSeparatorPositions(cfg.divisions, cfg.startPct, cfg.endPct);
                     normalizeDeckSeparatorPositions(cfg);
                 }
             });
@@ -965,8 +983,8 @@
             ensureDeckSeparatorConfig(bayGrids[bayId]);
             const cfg = bayGrids[bayId].deckSeparator;
             const minGap = 3;
-            const min = idx === 0 ? 2 : cfg.positions[idx - 1] + minGap;
-            const max = idx === cfg.positions.length - 1 ? 98 : cfg.positions[idx + 1] - minGap;
+            const min = idx === 0 ? cfg.startPct + 2 : cfg.positions[idx - 1] + minGap;
+            const max = idx === cfg.positions.length - 1 ? cfg.endPct - 2 : cfg.positions[idx + 1] - minGap;
             return Math.max(min, Math.min(max, rawValue));
         }
 
@@ -975,6 +993,33 @@
             getTwinBays(bayId).forEach(t => {
                 ensureDeckSeparatorConfig(bayGrids[t]);
                 bayGrids[t].deckSeparator.positions[idx] = finalValue;
+                normalizeDeckSeparatorPositions(bayGrids[t].deckSeparator);
+            });
+            return finalValue;
+        }
+
+        function clampDeckSeparatorBound(bayId, side, rawValue) {
+            ensureDeckSeparatorConfig(bayGrids[bayId]);
+            const cfg = bayGrids[bayId].deckSeparator;
+            const minBarWidth = Math.max(8, (cfg.divisions - 1) * 3 + 4);
+            let value = Math.max(0, Math.min(100, rawValue));
+
+            if (side === 'start') {
+                const firstLimit = cfg.positions.length ? cfg.positions[0] - 2 : cfg.endPct - minBarWidth;
+                return Math.max(0, Math.min(firstLimit, value));
+            }
+
+            const lastLimit = cfg.positions.length ? cfg.positions[cfg.positions.length - 1] + 2 : cfg.startPct + minBarWidth;
+            return Math.min(100, Math.max(lastLimit, value));
+        }
+
+        function setDeckSeparatorBound(bayId, side, value) {
+            const finalValue = clampDeckSeparatorBound(bayId, side, value);
+            getTwinBays(bayId).forEach(t => {
+                ensureDeckSeparatorConfig(bayGrids[t]);
+                if (side === 'start') bayGrids[t].deckSeparator.startPct = finalValue;
+                else bayGrids[t].deckSeparator.endPct = finalValue;
+                normalizeDeckSeparatorPositions(bayGrids[t].deckSeparator);
             });
             return finalValue;
         }
@@ -983,11 +1028,16 @@
             getTwinBays(bayId).forEach(t => {
                 if (!bayGrids[t]) return;
                 ensureDeckSeparatorConfig(bayGrids[t]);
-                const positions = bayGrids[t].deckSeparator.positions;
+                const cfg = bayGrids[t].deckSeparator;
                 document.querySelectorAll(`.deck-separator[data-bay="${t}"]`).forEach(separator => {
+                    const lineEl = separator.querySelector('.deck-separator-line');
+                    if (lineEl) {
+                        lineEl.style.left = `${cfg.startPct}%`;
+                        lineEl.style.width = `${cfg.endPct - cfg.startPct}%`;
+                    }
                     separator.querySelectorAll('.deck-separator-gap').forEach(gapEl => {
                         const idx = parseInt(gapEl.getAttribute('data-split-idx'), 10);
-                        if (!Number.isNaN(idx) && positions[idx] !== undefined) gapEl.style.left = `${positions[idx]}%`;
+                        if (!Number.isNaN(idx) && cfg.positions[idx] !== undefined) gapEl.style.left = `${cfg.positions[idx]}%`;
                     });
                 });
             });
@@ -997,9 +1047,54 @@
             const track = document.getElementById('deckSeparatorEditorTrack');
             if (!track) return;
 
-            const updateVisualEditor = (idx, pos) => {
-                track.querySelectorAll(`[data-split-idx="${idx}"]`).forEach(el => { el.style.left = `${pos}%`; });
+            const updateVisualEditor = () => {
+                ensureDeckSeparatorConfig(bayGrids[bayId]);
+                const cfg = bayGrids[bayId].deckSeparator;
+                const bar = track.querySelector('.separator-editor-bar');
+                if (bar) {
+                    bar.style.left = `${cfg.startPct}%`;
+                    bar.style.width = `${cfg.endPct - cfg.startPct}%`;
+                }
+                const startHandle = track.querySelector('[data-bound="start"]');
+                const endHandle = track.querySelector('[data-bound="end"]');
+                if (startHandle) startHandle.style.left = `${cfg.startPct}%`;
+                if (endHandle) endHandle.style.left = `${cfg.endPct}%`;
+                cfg.positions.forEach((pos, idx) => {
+                    track.querySelectorAll(`[data-split-idx="${idx}"]`).forEach(el => { el.style.left = `${pos}%`; });
+                });
             };
+
+            const getPointerPct = (ev) => {
+                const rect = track.getBoundingClientRect();
+                if (!rect.width) return 0;
+                return ((ev.clientX - rect.left) / rect.width) * 100;
+            };
+
+            track.querySelectorAll('.separator-editor-bound-handle').forEach(handle => {
+                handle.addEventListener('pointerdown', (ev) => {
+                    ev.preventDefault();
+                    const side = handle.getAttribute('data-bound');
+                    handle.setPointerCapture(ev.pointerId);
+
+                    const move = (moveEv) => {
+                        setDeckSeparatorBound(bayId, side, getPointerPct(moveEv));
+                        updateVisualEditor();
+                        applyDeckSeparatorPositionsToVisibleBay(bayId);
+                    };
+
+                    const up = (upEv) => {
+                        try { handle.releasePointerCapture(upEv.pointerId); } catch(e) {}
+                        handle.removeEventListener('pointermove', move);
+                        handle.removeEventListener('pointerup', up);
+                        handle.removeEventListener('pointercancel', up);
+                        persistData();
+                    };
+
+                    handle.addEventListener('pointermove', move);
+                    handle.addEventListener('pointerup', up);
+                    handle.addEventListener('pointercancel', up);
+                });
+            });
 
             track.querySelectorAll('.separator-editor-handle').forEach(handle => {
                 handle.addEventListener('pointerdown', (ev) => {
@@ -1008,11 +1103,8 @@
                     handle.setPointerCapture(ev.pointerId);
 
                     const move = (moveEv) => {
-                        const rect = track.getBoundingClientRect();
-                        if (!rect.width) return;
-                        const rawPct = ((moveEv.clientX - rect.left) / rect.width) * 100;
-                        const pos = setDeckSeparatorPosition(bayId, idx, rawPct);
-                        updateVisualEditor(idx, pos);
+                        setDeckSeparatorPosition(bayId, idx, getPointerPct(moveEv));
+                        updateVisualEditor();
                         applyDeckSeparatorPositionsToVisibleBay(bayId);
                     };
 
@@ -1042,11 +1134,6 @@
             const cfg = bayGrids[bayId].deckSeparator;
             countEl.textContent = cfg.divisions;
 
-            if (cfg.divisions <= 1) {
-                gapsBox.innerHTML = '<div class="separator-gap-empty">Clique no + para criar uma divisão e depois arraste a posição dela.</div>';
-                return;
-            }
-
             const handlesHtml = cfg.positions.map((pos, idx) => `
                 <div class="separator-editor-gap-preview" data-split-idx="${idx}" style="left: ${pos}%;"></div>
                 <div class="separator-editor-handle" data-split-idx="${idx}" title="Arrastar divisão ${idx + 1}" style="left: ${pos}%;"></div>
@@ -1055,11 +1142,13 @@
             gapsBox.innerHTML = `
                 <div class="separator-editor-wrap">
                     <div class="separator-editor-track" id="deckSeparatorEditorTrack">
-                        <div class="separator-editor-bar"></div>
+                        <div class="separator-editor-bar" style="left: ${cfg.startPct}%; width: ${cfg.endPct - cfg.startPct}%;"></div>
+                        <div class="separator-editor-bound-handle" data-bound="start" title="Arrastar início da barra" style="left: ${cfg.startPct}%;"></div>
+                        <div class="separator-editor-bound-handle" data-bound="end" title="Arrastar fim da barra" style="left: ${cfg.endPct}%;"></div>
                         ${handlesHtml}
                     </div>
-                    <div class="separator-editor-scale"><span>Esquerda</span><span>Centro</span><span>Direita</span></div>
-                    <div class="separator-editor-help">Arraste as divisões laranjas para deslocar a quebra da barra lateralmente. O desenho da bay atualiza junto.</div>
+                    <div class="separator-editor-scale"><span>Início</span><span>Centro</span><span>Fim</span></div>
+                    <div class="separator-editor-help">Arraste as alças escuras para encurtar ou alongar a barra. Arraste as alças laranjas para mover as divisões internas.</div>
                 </div>
             `;
 
@@ -1313,7 +1402,8 @@
             ensureDeckSeparatorConfig(bayGrids[bayId]);
             const cfg = bayGrids[bayId].deckSeparator;
             const splitGaps = cfg.positions.map((pos, idx) => `<div class="deck-separator-gap" data-split-idx="${idx}" style="left: ${pos}%;"></div>`).join('');
-            return `<div class="deck-separator" data-bay="${bayId}">${splitGaps}</div>`;
+            const lineStyle = `left: ${cfg.startPct}%; width: ${cfg.endPct - cfg.startPct}%;`;
+            return `<div class="deck-separator" data-bay="${bayId}"><div class="deck-separator-line" style="${lineStyle}"></div>${splitGaps}</div>`;
         }
 
         function generatePairHtml(bay1, bay2, isPrint = false) {
