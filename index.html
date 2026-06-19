@@ -146,15 +146,33 @@
 
         .axis-row { display: flex; margin-bottom: 0px; }
         .axis-col-labels { display: flex; border: none; }
-        .axis-label { width: var(--cell-size); min-width: var(--cell-size); flex-shrink: 0; text-align: center; font-size: 11px; font-weight: bold; color: #666; box-sizing: border-box; }
-        .row-label { width: 24px; min-width: 24px; flex-shrink: 0; display: flex; align-items: center; justify-content: flex-end; margin-right: 4px; font-size: 11px; font-weight: bold; color: #666; box-sizing: border-box; }
+        .axis-label { width: var(--cell-size); min-width: var(--cell-size); flex-shrink: 0; text-align: center; font-size: 11px; font-weight: bold; color: #666; box-sizing: border-box; touch-action: none; }
+        .row-label { width: 24px; min-width: 24px; flex-shrink: 0; display: flex; align-items: center; justify-content: flex-end; margin-right: 4px; font-size: 11px; font-weight: bold; color: #666; box-sizing: border-box; touch-action: none;}
         
         /* TAMPAS DOS PORÕES (DECK SEPARATOR) COM FLEX */
         .deck-separator-container { width: 100%; display: flex; gap: 4px; justify-content: center; margin: 6px 0; box-sizing: border-box; }
         .deck-separator-segment { height: 6px; background-color: #111; border-radius: 2px; }
 
         .grid-row { display: flex; }
-        .cell { width: var(--cell-size); min-width: var(--cell-size); height: var(--cell-size); flex-shrink: 0; border: 1px solid var(--cell-border); background-color: var(--port-empty); position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.1s; box-sizing: border-box; }
+        
+        /* CLASSE CELULA COM PROTEÇÃO TOUCH (VITAL PARA TABLET/CELULAR) */
+        .cell { 
+            width: var(--cell-size); 
+            min-width: var(--cell-size); 
+            height: var(--cell-size); 
+            flex-shrink: 0; 
+            border: 1px solid var(--cell-border); 
+            background-color: var(--port-empty); 
+            position: relative; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            transition: 0.1s; 
+            box-sizing: border-box; 
+            touch-action: none; /* Bloqueia a rolagem da tela se o dedo estiver aqui */
+        }
+        
         .cell:hover { opacity: 0.8; border: 2px solid #000; z-index: 50;}
         .cell.hidden { visibility: hidden; border: none; pointer-events: none; }
         .edit-mode-active .cell { cursor: cell; pointer-events: auto !important;}
@@ -217,14 +235,14 @@
         <p>Isso pode levar alguns segundos. Não feche a página.</p>
     </div>
 
+    <!-- MODAL DE BOAS VINDAS -->
     <div id="welcomeModal" class="modal-overlay">
         <div class="modal-content">
-            <h2>🚢 Stowage Plan Pro - Físicas e Gêmeas</h2>
+            <h2>🚢 Stowage Plan Pro - Otimizado para Touch</h2>
             <ul>
                 <li><strong style="color: #d9534f;">MUDE AS CORES (OBRIGATÓRIO):</strong> Vá na aba "1. Lista de Carga", logo abaixo, e altere a paleta de cores dos portos clicando nas caixas de cor.</li>
-                <li><strong>Gêmeas Físicas (Atualizado):</strong> As plantas IMO são 01 e 11. As Reefer são 35, 37 e 39. Estive onde quiser; a carga física será salva automaticamente em todas as versões daquela baia, mas exibida de forma inteligente (o que não pertence à vista será oculto pela trava "⇄").</li>
-                <li><strong>Tampas do Convés Redimensionáveis:</strong> Na aba de editar casco, você pode dividir a barra preta do convés criando pontões sob medida.</li>
-                <li><strong>Over Width Dinâmico:</strong> Contêineres OW farão "sanduíche" automático para a esquerda ou direita se encostados na parede, e impedirão que algo seja estivado "esmagando" sua sobra.</li>
+                <li><strong>Toque Corrigido (Celular/Tablet):</strong> A grade do navio agora possui uma trava física (`touch-action`). Isso garante que, ao clicar numa célula para colocar a carga, a tela não vai rolar nem falhar.</li>
+                <li><strong>Atenção:</strong> Lembre-se sempre de selecionar um lote de carga na barra lateral esquerda antes de clicar no navio. Se não houver nada selecionado, o clique na grade vazia será ignorado.</li>
             </ul>
             <button id="closeModalBtn" class="btn-start" onclick="document.getElementById('welcomeModal').classList.remove('active')">Entendido, vamos começar!</button>
         </div>
@@ -245,6 +263,7 @@
     </header>
 
     <main>
+        <!-- ================= TELA 1: LISTA DE CARGA (INPUT) ================= -->
         <section id="cargoView">
             <div class="cargo-header">
                 <h3 style="margin-bottom: 5px;">Tabela de Contêineres (Padrão TTM 2026 Carregado)</h3>
@@ -287,9 +306,11 @@
             </div>
         </section>
 
+        <!-- ================= TELA 2: PLANO MANUAL & VISÃO ================= -->
         <section id="manualView">
             <aside class="sidebar">
                 
+                <!-- PAINEL DE EXPANSÃO DA GRADE -->
                 <div id="gridEditPanel" class="grid-edit-panel">
                     <h4>⚙️ Editar Casco & Tampas</h4>
                     <select id="editGridBaySelect" class="grid-edit-select"></select>
@@ -314,6 +335,7 @@
                     
                     <hr style="border: 0; border-top: 1px solid #fbb; margin: 12px 0;">
                     
+                    <!-- DIVISÃO DE CONVÉS -->
                     <div style="font-size: 11px; font-weight: bold; color: #333; margin-bottom: 6px;">Tampas do Porão (Padrão: 1 inteira)</div>
                     <div style="display: flex; gap: 5px; margin-bottom: 5px;">
                         <input type="text" id="inpDeckSeps" placeholder="Ex: 4,5,4" title="Tamanho de cada pontão em colunas" style="flex: 1; padding: 6px; font-size: 12px; border: 1px solid #ccc; border-radius: 3px; outline: none;">
@@ -346,6 +368,7 @@
         </section>
     </main>
 
+    <!-- AREA OCULTA PARA GERAÇÃO DA IMAGEM PDF -->
     <div id="printArea"></div>
 
     <script>
@@ -522,7 +545,8 @@
                         const parsed = JSON.parse(ev.target.result);
                         if(parsed.shipTopology && parsed.savedShip) {
                             localStorage.setItem('stowagePlanData', ev.target.result);
-                            alert('Plano importado com sucesso!'); location.reload();
+                            alert('Plano importado com sucesso! A página será recarregada.');
+                            location.reload();
                         } else { alert('Arquivo JSON inválido para este aplicativo.'); }
                     } catch(err) { alert('Erro ao ler o arquivo JSON.'); }
                 }; reader.readAsText(file);
@@ -538,7 +562,7 @@
             if (b >= 9 && b <= 15) { if (isAbove) { if (row === '92' || row === '90') return true; return false; } else { if (col === '00' || col === '12' || col === '11') return true; return false; } }
             if (b === 17 || b === 19) { if (isAbove) { if (row === '92') return true; if ((row === '90' || row === '88' || row === '86') && col === '00') return true; return false; } else { if (col === '00' || col === '12' || col === '11') return true; return false; } }
             if ((b >= 21 && b <= 27) || b === 33 || b === 35) { if (isAbove) { if (row === '92') return true; return false; } else { if (col === '00' || col === '12' || col === '11') return true; return false; } }
-            if (b === 37 || b === 39) { if (!isAbove) return true; return false; }
+            if (b === 37 || b === 39) { if (isAbove) return false; else return true; }
             if (col === '00' && !isAbove) return true; return false;
         }
 
@@ -716,12 +740,30 @@
             let tr = document.createElement('tr'); let id = data && data.id ? data.id : generateId(); tr.setAttribute('data-id', id);
             let d_pod = data ? data.pod : 'TR'; let d_qty = data ? data.qty : 10; let d_size = data ? data.size : '20'; let d_base = data ? data.base : 'dry'; let d_mods = data ? data.mods : [];
             const isChecked = (val) => d_mods.includes(val) ? 'checked' : '';
+
             tr.innerHTML = `
-                <td><select class="inp-pod" onchange="syncInventoryFromTable()"><option value="TR" ${d_pod==='TR'?'selected':''}>TR (Trieste)</option><option value="VE" ${d_pod==='VE'?'selected':''}>VE (Veneza)</option><option value="NA" ${d_pod==='NA'?'selected':''}>NA (Napoles)</option><option value="BA" ${d_pod==='BA'?'selected':''}>BA (Barcelona)</option><option value="LH" ${d_pod==='LH'?'selected':''}>LH (Le Havre)</option><option value="LB" ${d_pod==='LB'?'selected':''}>LB (Lisboa)</option></select></td>
+                <td><select class="inp-pod" onchange="syncInventoryFromTable()">
+                    <option value="TR" ${d_pod==='TR'?'selected':''}>TR (Trieste)</option><option value="VE" ${d_pod==='VE'?'selected':''}>VE (Veneza)</option>
+                    <option value="NA" ${d_pod==='NA'?'selected':''}>NA (Napoles)</option><option value="BA" ${d_pod==='BA'?'selected':''}>BA (Barcelona)</option>
+                    <option value="LH" ${d_pod==='LH'?'selected':''}>LH (Le Havre)</option><option value="LB" ${d_pod==='LB'?'selected':''}>LB (Lisboa)</option>
+                </select></td>
                 <td><input type="number" class="inp-qty" value="${d_qty}" min="1" onchange="syncInventoryFromTable()"></td>
-                <td><select class="inp-size" onchange="syncInventoryFromTable()"><option value="20" ${d_size==='20'?'selected':''}>20'</option><option value="40" ${d_size==='40'?'selected':''}>40'</option><option value="45" ${d_size==='45'?'selected':''}>45'</option></select></td>
-                <td><select class="inp-base" onchange="syncInventoryFromTable()"><option value="dry" ${d_base==='dry'?'selected':''}>Dry Cargo</option><option value="opentop" ${d_base==='opentop'?'selected':''}>Open Top</option><option value="flatrack" ${d_base==='flatrack'?'selected':''}>Flat Rack</option><option value="platform" ${d_base==='platform'?'selected':''}>Plataforma</option><option value="oh40" ${d_base==='oh40'?'selected':''}>Over Hang 40'</option><option value="oh45" ${d_base==='oh45'?'selected':''}>Over Hang 45'</option><option value="imo" ${d_base==='imo'?'selected':''}>IMO Class</option><option value="livestock" ${d_base==='livestock'?'selected':''}>Live Stock</option><option value="tank" ${d_base==='tank'?'selected':''}>Tank</option></select></td>
-                <td><div class="attr-checks" onchange="syncInventoryFromTable()"><label><input type="checkbox" value="hc" ${isChecked('hc')}>HC</label><label><input type="checkbox" value="ow" ${isChecked('ow')}>OW</label><label><input type="checkbox" value="oh" ${isChecked('oh')}>OH</label><label><input type="checkbox" value="ol" ${isChecked('ol')}>OL</label><label><input type="checkbox" value="empty" ${isChecked('empty')}>Empty (E)</label><label><input type="checkbox" value="reefer" ${isChecked('reefer')}>Reefer (R)</label><label><input type="checkbox" value="imo5" ${isChecked('imo5')}>IMO 5</label><label><input type="checkbox" value="imo8" ${isChecked('imo8')}>IMO 8</label></div></td>
+                <td><select class="inp-size" onchange="syncInventoryFromTable()">
+                    <option value="20" ${d_size==='20'?'selected':''}>20'</option><option value="40" ${d_size==='40'?'selected':''}>40'</option><option value="45" ${d_size==='45'?'selected':''}>45'</option>
+                </select></td>
+                <td><select class="inp-base" onchange="syncInventoryFromTable()">
+                    <option value="dry" ${d_base==='dry'?'selected':''}>Dry Cargo</option><option value="opentop" ${d_base==='opentop'?'selected':''}>Open Top</option>
+                    <option value="flatrack" ${d_base==='flatrack'?'selected':''}>Flat Rack</option><option value="platform" ${d_base==='platform'?'selected':''}>Plataforma</option>
+                    <option value="oh40" ${d_base==='oh40'?'selected':''}>Over Hang 40'</option><option value="oh45" ${d_base==='oh45'?'selected':''}>Over Hang 45'</option>
+                    <option value="imo" ${d_base==='imo'?'selected':''}>IMO Class</option><option value="livestock" ${d_base==='livestock'?'selected':''}>Live Stock</option>
+                    <option value="tank" ${d_base==='tank'?'selected':''}>Tank</option>
+                </select></td>
+                <td><div class="attr-checks" onchange="syncInventoryFromTable()">
+                    <label><input type="checkbox" value="hc" ${isChecked('hc')}>HC</label><label><input type="checkbox" value="ow" ${isChecked('ow')}>OW</label>
+                    <label><input type="checkbox" value="oh" ${isChecked('oh')}>OH</label><label><input type="checkbox" value="ol" ${isChecked('ol')}>OL</label>
+                    <label><input type="checkbox" value="empty" ${isChecked('empty')}>Empty (E)</label><label><input type="checkbox" value="reefer" ${isChecked('reefer')}>Reefer (R)</label>
+                    <label><input type="checkbox" value="imo5" ${isChecked('imo5')}>IMO 5</label><label><input type="checkbox" value="imo8" ${isChecked('imo8')}>IMO 8</label>
+                </div></td>
                 <td><button class="btn-clear-row" onclick="this.closest('tr').remove(); syncInventoryFromTable();">X</button></td>
             `;
             document.getElementById('cargoTbody').appendChild(tr);
@@ -763,6 +805,7 @@
             if (actItem && (actItem.qty - actItem.placed) <= 0) { activeInvId = null; setTimeout(renderInventoryPalette, 10); }
         }
 
+        // EVITA CONTAGEM DUPLA DAS GÊMEAS
         function recalculateInventory() {
             globalInventory.forEach(inv => inv.placed = 0);
             let countedSlots = new Set();
@@ -804,6 +847,7 @@
                         let coord = `${row}-${col}`;
                         let isHidden = shipTopology[bayId][coord] ? 'hidden' : '';
                         let cellData = savedData[coord];
+                        
                         let contentHtml = ''; let bgColorStyle = isPrint ? 'background-color: #ffffff !important;' : 'background-color: var(--port-empty);';
 
                         if (cellData) {
@@ -865,8 +909,8 @@
             let colFooter = `<div class="axis-row" style="margin-bottom: 4px; margin-top: 4px;"><div class="row-label" style="visibility: hidden; border: none; pointer-events: none;">00</div><div class="grid-row">`;
             bayGrid.cols.forEach(c => { colFooter += `<div class="axis-label" contenteditable="${isEditable ? 'true' : 'false'}" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" onblur="renameAxis('${bayId}', 'col', '${c}', this)">${c}</div>`; });
             colFooter += '</div></div>';
-            
             bayHtml += `</div></div>${colFooter}</div></div>`; 
+            
             return bayHtml;
         }
 
@@ -1055,10 +1099,18 @@
 
         function attachCellListeners() {
             document.querySelectorAll('.cell').forEach(cell => {
-                cell.addEventListener('mousedown', function(e) {
+                // ATUALIZAÇÃO VITAL: Usando pointerdown para garantir 100% de compatibilidade em telas touch (Tablet/S24+)
+                cell.addEventListener('pointerdown', function(e) {
                     let rStr = this.getAttribute('data-row'); let cStr = this.getAttribute('data-col'); let bayId = this.getAttribute('data-bay');
                     let grid = bayGrids[bayId]; let all_rows = [...grid.rowsAbove, ...grid.rowsBelow];
                     let rIdx = all_rows.indexOf(rStr); let cIdx = grid.cols.indexOf(cStr);
+                    let coord = `${rStr}-${cStr}`;
+
+                    // VERIFICAÇÃO DE USO MANUAL (Se clicou sem ter carga na mão)
+                    if (!currentState.editMode && !savedShip[bayId][coord] && activeInvId === null) {
+                        alert("🚢 Selecione primeiro uma carga na lista da esquerda (ela ficará azul) para poder estivar no navio!");
+                        return;
+                    }
 
                     if (e.shiftKey && activeInvId !== null && isShiftActionFill && !currentState.editMode) {
                         let inv = globalInventory.find(i => i.id === activeInvId);
@@ -1080,7 +1132,6 @@
                             }
                         }
                     } else {
-                        let coord = `${rStr}-${cStr}`;
                         if(currentState.editMode) {
                              isShiftActionFill = !shipTopology[bayId][coord];
                              getTwinBays(bayId).forEach(t => shipTopology[t][coord] = isShiftActionFill); 
