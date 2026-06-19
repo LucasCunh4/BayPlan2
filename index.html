@@ -153,9 +153,15 @@
         .grid-edit-btns button:hover { background: #eee; }
 
         .separator-gap-controls { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
-        .separator-gap-controls label { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11px; color: #333; font-weight: bold; }
-        .separator-gap-controls input { width: 70px; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 11px; }
         .separator-gap-empty { font-size: 11px; color: #777; text-align: center; margin-top: 6px; }
+        .separator-editor-wrap { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 10px; }
+        .separator-editor-track { position: relative; height: 34px; border: 1px solid #ccc; border-radius: 5px; background: linear-gradient(to right, #f8f8f8, #fff); overflow: visible; touch-action: none; }
+        .separator-editor-bar { position: absolute; left: 8px; right: 8px; top: 14px; height: 6px; background: #111; border-radius: 3px; }
+        .separator-editor-gap-preview { position: absolute; top: 11px; width: 8px; height: 12px; transform: translateX(-50%); background: #fff; border-left: 1px solid #999; border-right: 1px solid #999; pointer-events: none; z-index: 2; }
+        .separator-editor-handle { position: absolute; top: 4px; width: 16px; height: 26px; transform: translateX(-50%); border: 1px solid #b36b00; border-radius: 4px; background: #f39c12; cursor: ew-resize; z-index: 3; box-shadow: 0 1px 3px rgba(0,0,0,0.25); touch-action: none; }
+        .separator-editor-handle::after { content: '↔'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #fff; font-weight: bold; }
+        .separator-editor-scale { display: flex; justify-content: space-between; font-size: 9px; color: #777; margin-top: 4px; }
+        .separator-editor-help { font-size: 10px; color: #555; text-align: center; margin-top: 6px; line-height: 1.25; }
 
         .inventory-container { flex: 1; overflow-y: auto; background: #fff; }
         .inventory-header { padding: 10px 15px; background: #1a2a3a; color: white; font-size: 12px; font-weight: bold; position: sticky; top: 0; z-index: 10; display:flex; justify-content: space-between; align-items:center;}
@@ -208,12 +214,18 @@
 
         /* TRAVAS DE ALINHAMENTO MATEMÁTICO */
         .axis-row { display: flex; margin-bottom: 0px; }
+        .roll-axis-row { display: flex; align-items: center; margin-bottom: 4px; margin-top: 4px; }
         .axis-col-labels { display: flex; border: none; }
+        .tier-title-spacer { visibility: hidden; pointer-events: none; }
         
         .axis-label { 
             width: var(--cell-size); 
             min-width: var(--cell-size); /* Trava largura */
+            height: 16px;
             flex-shrink: 0; /* Impede encolhimento */
+            display: flex;
+            align-items: center;
+            justify-content: center;
             text-align: center; 
             font-size: 11px; 
             font-weight: bold; 
@@ -235,9 +247,8 @@
             box-sizing: border-box; 
         }
         
-        .deck-separator { width: 100%; height: 6px; margin: 6px 0; display: flex; align-items: stretch; background: transparent; }
-        .deck-segment { flex: 1 1 auto; height: 6px; background-color: #111; border-radius: 2px; }
-        .deck-gap { flex: 0 0 auto; height: 6px; background: transparent; }
+        .deck-separator { width: 100%; height: 8px; margin: 6px 0; position: relative; background: #111; border-radius: 2px; overflow: visible; }
+        .deck-separator-gap { position: absolute; top: -1px; width: 8px; height: 10px; transform: translateX(-50%); background: #fff; z-index: 2; }
         
         .grid-row { display: flex; }
         .cell {
@@ -374,7 +385,7 @@
 
         .pdf-page .bay-pair-wrapper { width: 100%; transform: scale(1.05); transform-origin: top center; }
         .pdf-page .cell { border: 1px solid #111 !important; }
-        .pdf-page .deck-segment { background-color: #000 !important; }
+        .pdf-page .deck-separator { background-color: #000 !important; }
         .pdf-page .bay-container { border: 2px solid #aaa !important; box-shadow: none !important;}
 
     </style>
@@ -496,7 +507,7 @@
                     <hr style="border: none; border-top: 1px solid #ffcaca; margin: 12px 0;">
 
                     <div class="grid-edit-row">
-                        <span>Divisões da barra preta: <strong id="deckSeparatorCount">1</strong></span>
+                        <span>Divisões arrastáveis da barra: <strong id="deckSeparatorCount">1</strong></span>
                         <div class="grid-edit-btns">
                             <button id="btnRemDeckSplit">-</button>
                             <button id="btnAddDeckSplit">+</button>
@@ -582,16 +593,54 @@
                 cols: [...COLS_DEFAULT],
                 rowsAbove: [...ROWS_ABOVE_DEFAULT],
                 rowsBelow: [...ROWS_BELOW_DEFAULT],
-                deckSeparator: { divisions: 1, gaps: [] }
+                deckSeparator: { divisions: 1, positions: [] }
             };
         }
 
+        function getEvenDeckSeparatorPositions(divisions) {
+            let positions = [];
+            for (let i = 1; i < divisions; i++) positions.push((100 / divisions) * i);
+            return positions;
+        }
+
+        function normalizeDeckSeparatorPositions(cfg) {
+            const needed = Math.max(0, cfg.divisions - 1);
+            const minGap = 3;
+
+            if (!Array.isArray(cfg.positions)) cfg.positions = getEvenDeckSeparatorPositions(cfg.divisions);
+            cfg.positions = cfg.positions.map(p => Math.max(2, Math.min(98, parseFloat(p) || 0))).sort((a, b) => a - b);
+
+            while (cfg.positions.length < needed) {
+                const bounds = [0, ...cfg.positions, 100];
+                let bestIdx = 0;
+                let bestSize = -1;
+                for (let i = 0; i < bounds.length - 1; i++) {
+                    const size = bounds[i + 1] - bounds[i];
+                    if (size > bestSize) { bestSize = size; bestIdx = i; }
+                }
+                cfg.positions.push((bounds[bestIdx] + bounds[bestIdx + 1]) / 2);
+                cfg.positions.sort((a, b) => a - b);
+            }
+
+            if (cfg.positions.length > needed) cfg.positions.length = needed;
+
+            cfg.positions = cfg.positions.map((p, idx) => {
+                const min = idx === 0 ? 2 : cfg.positions[idx - 1] + minGap;
+                const max = idx === needed - 1 ? 98 : 100 - ((needed - idx - 1) * minGap) - 2;
+                return Math.max(min, Math.min(max, p));
+            });
+        }
+
         function ensureDeckSeparatorConfig(grid) {
-            if (!grid.deckSeparator) grid.deckSeparator = { divisions: 1, gaps: [] };
+            if (!grid.deckSeparator) grid.deckSeparator = { divisions: 1, positions: [] };
             grid.deckSeparator.divisions = Math.max(1, parseInt(grid.deckSeparator.divisions) || 1);
-            if (!Array.isArray(grid.deckSeparator.gaps)) grid.deckSeparator.gaps = [];
-            while (grid.deckSeparator.gaps.length < grid.deckSeparator.divisions - 1) grid.deckSeparator.gaps.push(8);
-            if (grid.deckSeparator.gaps.length > grid.deckSeparator.divisions - 1) grid.deckSeparator.gaps.length = grid.deckSeparator.divisions - 1;
+
+            // Compatibilidade com backups antigos que guardavam apenas os espaços em px.
+            if (!Array.isArray(grid.deckSeparator.positions)) {
+                grid.deckSeparator.positions = getEvenDeckSeparatorPositions(grid.deckSeparator.divisions);
+            }
+
+            normalizeDeckSeparatorPositions(grid.deckSeparator);
         }
 
         function ensureBayStorage(bayId) {
@@ -689,7 +738,7 @@
 
         // --- SISTEMA DE SALVAMENTO LOCAL & JSON ---
         function persistData() {
-            const dataToSave = { version: 3, shipTopology, savedShip, globalInventory, bayGrids };
+            const dataToSave = { version: 4, shipTopology, savedShip, globalInventory, bayGrids };
             localStorage.setItem('stowagePlanData', JSON.stringify(dataToSave));
         }
 
@@ -698,7 +747,7 @@
             if (stored) {
                 try {
                     const parsed = JSON.parse(stored);
-                    if (![2, 3].includes(parsed.version)) return false; 
+                    if (![2, 3, 4].includes(parsed.version)) return false; 
                     
                     shipTopology = parsed.shipTopology || {};
                     savedShip = parsed.savedShip || {};
@@ -897,12 +946,89 @@
             getTwinBays(bayId).forEach(t => {
                 ensureDeckSeparatorConfig(bayGrids[t]);
                 let cfg = bayGrids[t].deckSeparator;
-                cfg.divisions = Math.max(1, cfg.divisions + delta);
-                ensureDeckSeparatorConfig(bayGrids[t]);
+
+                if (delta > 0) {
+                    cfg.divisions += 1;
+                    normalizeDeckSeparatorPositions(cfg);
+                } else if (delta < 0 && cfg.divisions > 1) {
+                    cfg.divisions -= 1;
+                    if (cfg.positions.length > cfg.divisions - 1) cfg.positions.pop();
+                    normalizeDeckSeparatorPositions(cfg);
+                }
             });
             persistData();
             updateDeckSeparatorGapControls();
             renderBayPairsUI();
+        }
+
+        function clampDeckSeparatorPosition(bayId, idx, rawValue) {
+            ensureDeckSeparatorConfig(bayGrids[bayId]);
+            const cfg = bayGrids[bayId].deckSeparator;
+            const minGap = 3;
+            const min = idx === 0 ? 2 : cfg.positions[idx - 1] + minGap;
+            const max = idx === cfg.positions.length - 1 ? 98 : cfg.positions[idx + 1] - minGap;
+            return Math.max(min, Math.min(max, rawValue));
+        }
+
+        function setDeckSeparatorPosition(bayId, idx, value) {
+            const finalValue = clampDeckSeparatorPosition(bayId, idx, value);
+            getTwinBays(bayId).forEach(t => {
+                ensureDeckSeparatorConfig(bayGrids[t]);
+                bayGrids[t].deckSeparator.positions[idx] = finalValue;
+            });
+            return finalValue;
+        }
+
+        function applyDeckSeparatorPositionsToVisibleBay(bayId) {
+            getTwinBays(bayId).forEach(t => {
+                if (!bayGrids[t]) return;
+                ensureDeckSeparatorConfig(bayGrids[t]);
+                const positions = bayGrids[t].deckSeparator.positions;
+                document.querySelectorAll(`.deck-separator[data-bay="${t}"]`).forEach(separator => {
+                    separator.querySelectorAll('.deck-separator-gap').forEach(gapEl => {
+                        const idx = parseInt(gapEl.getAttribute('data-split-idx'), 10);
+                        if (!Number.isNaN(idx) && positions[idx] !== undefined) gapEl.style.left = `${positions[idx]}%`;
+                    });
+                });
+            });
+        }
+
+        function setupDeckSeparatorDragHandlers(bayId) {
+            const track = document.getElementById('deckSeparatorEditorTrack');
+            if (!track) return;
+
+            const updateVisualEditor = (idx, pos) => {
+                track.querySelectorAll(`[data-split-idx="${idx}"]`).forEach(el => { el.style.left = `${pos}%`; });
+            };
+
+            track.querySelectorAll('.separator-editor-handle').forEach(handle => {
+                handle.addEventListener('pointerdown', (ev) => {
+                    ev.preventDefault();
+                    const idx = parseInt(handle.getAttribute('data-split-idx'), 10);
+                    handle.setPointerCapture(ev.pointerId);
+
+                    const move = (moveEv) => {
+                        const rect = track.getBoundingClientRect();
+                        if (!rect.width) return;
+                        const rawPct = ((moveEv.clientX - rect.left) / rect.width) * 100;
+                        const pos = setDeckSeparatorPosition(bayId, idx, rawPct);
+                        updateVisualEditor(idx, pos);
+                        applyDeckSeparatorPositionsToVisibleBay(bayId);
+                    };
+
+                    const up = (upEv) => {
+                        try { handle.releasePointerCapture(upEv.pointerId); } catch(e) {}
+                        handle.removeEventListener('pointermove', move);
+                        handle.removeEventListener('pointerup', up);
+                        handle.removeEventListener('pointercancel', up);
+                        persistData();
+                    };
+
+                    handle.addEventListener('pointermove', move);
+                    handle.addEventListener('pointerup', up);
+                    handle.addEventListener('pointercancel', up);
+                });
+            });
         }
 
         function updateDeckSeparatorGapControls() {
@@ -917,28 +1043,27 @@
             countEl.textContent = cfg.divisions;
 
             if (cfg.divisions <= 1) {
-                gapsBox.innerHTML = '<div class="separator-gap-empty">Sem espaços internos na barra.</div>';
+                gapsBox.innerHTML = '<div class="separator-gap-empty">Clique no + para criar uma divisão e depois arraste a posição dela.</div>';
                 return;
             }
 
-            gapsBox.innerHTML = cfg.gaps.map((gap, idx) => `
-                <label>Espaço ${idx + 1} (px)
-                    <input type="number" min="0" step="1" value="${gap}" data-gap-idx="${idx}">
-                </label>
+            const handlesHtml = cfg.positions.map((pos, idx) => `
+                <div class="separator-editor-gap-preview" data-split-idx="${idx}" style="left: ${pos}%;"></div>
+                <div class="separator-editor-handle" data-split-idx="${idx}" title="Arrastar divisão ${idx + 1}" style="left: ${pos}%;"></div>
             `).join('');
 
-            gapsBox.querySelectorAll('input').forEach(input => {
-                input.addEventListener('input', () => {
-                    const idx = parseInt(input.getAttribute('data-gap-idx'), 10);
-                    const value = Math.max(0, parseInt(input.value, 10) || 0);
-                    getTwinBays(bayId).forEach(t => {
-                        ensureDeckSeparatorConfig(bayGrids[t]);
-                        bayGrids[t].deckSeparator.gaps[idx] = value;
-                    });
-                    persistData();
-                    renderBayPairsUI();
-                });
-            });
+            gapsBox.innerHTML = `
+                <div class="separator-editor-wrap">
+                    <div class="separator-editor-track" id="deckSeparatorEditorTrack">
+                        <div class="separator-editor-bar"></div>
+                        ${handlesHtml}
+                    </div>
+                    <div class="separator-editor-scale"><span>Esquerda</span><span>Centro</span><span>Direita</span></div>
+                    <div class="separator-editor-help">Arraste as divisões laranjas para deslocar a quebra da barra lateralmente. O desenho da bay atualiza junto.</div>
+                </div>
+            `;
+
+            setupDeckSeparatorDragHandlers(bayId);
         }
 
         function initApp() {
@@ -1187,16 +1312,8 @@
         function generateDeckSeparatorHtml(bayId) {
             ensureDeckSeparatorConfig(bayGrids[bayId]);
             const cfg = bayGrids[bayId].deckSeparator;
-            let html = '<div class="deck-separator">';
-            for (let i = 0; i < cfg.divisions; i++) {
-                html += '<div class="deck-segment"></div>';
-                if (i < cfg.divisions - 1) {
-                    const gap = Math.max(0, parseInt(cfg.gaps[i], 10) || 0);
-                    html += `<div class="deck-gap" style="width: ${gap}px; min-width: ${gap}px;"></div>`;
-                }
-            }
-            html += '</div>';
-            return html;
+            const splitGaps = cfg.positions.map((pos, idx) => `<div class="deck-separator-gap" data-split-idx="${idx}" style="left: ${pos}%;"></div>`).join('');
+            return `<div class="deck-separator" data-bay="${bayId}">${splitGaps}</div>`;
         }
 
         function generatePairHtml(bay1, bay2, isPrint = false) {
@@ -1208,7 +1325,7 @@
             let savedData = savedShip[bayId] || {}; let isEditable = currentState.editMode && !isPrint; let bayGrid = bayGrids[bayId];
             let bayHtml = `<div class="bay-container-wrapper" style="display: flex; flex-direction: column; align-items: center;"><h3 style="font-size: 24px; color: #111; margin: 0 0 10px 0; letter-spacing: 1px;">BAY ${bayId}</h3><div class="bay-container"><div class="axis-title">ROLL</div>`;
             
-            let colLabels = `<div class="axis-row" style="margin-bottom: 4px; margin-top: 4px;"><div class="row-label" style="visibility: hidden; border: none; pointer-events: none;">00</div><div class="grid-row">`;
+            let colLabels = `<div class="roll-axis-row"><div class="axis-title-tier tier-title-spacer">TIER</div><div class="row-label" style="visibility: hidden; border: none; pointer-events: none;">00</div><div class="grid-row">`;
             bayGrid.cols.forEach(c => { colLabels += `<div class="axis-label" contenteditable="${isEditable ? 'true' : 'false'}" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" onblur="renameAxis('${bayId}', 'col', '${c}', this)">${c}</div>`; });
             colLabels += '</div></div>';
             
@@ -1262,7 +1379,7 @@
 
             bayHtml += drawRows(bayGrid.rowsAbove, 'row-above'); bayHtml += generateDeckSeparatorHtml(bayId); bayHtml += drawRows(bayGrid.rowsBelow, 'row-below');
             
-            let colFooter = `<div class="axis-row" style="margin-bottom: 4px; margin-top: 4px;"><div class="row-label" style="visibility: hidden; border: none; pointer-events: none;">00</div><div class="grid-row">`;
+            let colFooter = `<div class="roll-axis-row"><div class="axis-title-tier tier-title-spacer">TIER</div><div class="row-label" style="visibility: hidden; border: none; pointer-events: none;">00</div><div class="grid-row">`;
             bayGrid.cols.forEach(c => { colFooter += `<div class="axis-label" contenteditable="${isEditable ? 'true' : 'false'}" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" onblur="renameAxis('${bayId}', 'col', '${c}', this)">${c}</div>`; });
             colFooter += '</div></div>';
             bayHtml += `</div></div>${colFooter}</div></div>`; 
